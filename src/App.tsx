@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import Servicos from "./pages/Servicos";
@@ -10,28 +11,35 @@ import Portfolio from "./pages/Portfolio";
 import Sobre from "./pages/Sobre";
 import Contato from "./pages/Contato";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Layout>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/servicos" element={<Servicos />} />
-            <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/sobre" element={<Sobre />} />
-            <Route path="/contato" element={<Contato />} />
+            {/* Admin routes without Layout */}
+            <Route path="/admindev/login" element={<AdminLogin />} />
+            <Route path="/admindev" element={<AdminDashboard />} />
+            
+            {/* Public routes with Layout */}
+            <Route path="/" element={<Layout><Index /></Layout>} />
+            <Route path="/servicos" element={<Layout><Servicos /></Layout>} />
+            <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
+            <Route path="/sobre" element={<Layout><Sobre /></Layout>} />
+            <Route path="/contato" element={<Layout><Contato /></Layout>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>
-        </Layout>
-      </BrowserRouter>
-    </TooltipProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
