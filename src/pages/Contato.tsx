@@ -11,26 +11,32 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { SectionTitle } from "@/components/SectionTitle";
+import { supabase } from "@/integrations/supabase/client";
+
 const contactSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("Email inválido"),
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
+  email: z.string().email("Email inválido").max(255, "Email muito longo"),
   phone: z.string().optional(),
-  message: z.string().min(10, "Mensagem deve ter pelo menos 10 caracteres")
+  message: z.string().min(10, "Mensagem deve ter pelo menos 10 caracteres").max(2000, "Mensagem muito longa")
 });
+
 const budgetSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("Email inválido"),
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
+  email: z.string().email("Email inválido").max(255, "Email muito longo"),
   phone: z.string().optional(),
   company: z.string().optional(),
   projectType: z.string().min(1, "Selecione o tipo de projeto"),
   budget: z.string().min(1, "Selecione o range de investimento"),
   deadline: z.string().optional(),
-  description: z.string().min(20, "Descreva seu projeto com mais detalhes")
+  description: z.string().min(20, "Descreva seu projeto com mais detalhes").max(5000, "Descrição muito longa")
 });
+
 type ContactFormData = z.infer<typeof contactSchema>;
 type BudgetFormData = z.infer<typeof budgetSchema>;
+
 const projectTypes = ["Sistema de Gestão", "Plataforma Digital", "Solução SaaS", "Site Institucional", "Landing Page", "E-commerce", "Aplicativo Web", "Manutenção/Suporte", "Outro"];
 const budgetRanges = ["Até R$ 10.000", "R$ 10.000 - R$ 30.000", "R$ 30.000 - R$ 50.000", "R$ 50.000 - R$ 100.000", "Acima de R$ 100.000", "A definir"];
+
 const contactInfo = [{
   icon: Mail,
   title: "E-mail",
@@ -50,23 +56,65 @@ const contactInfo = [{
   title: "Horário",
   value: "Seg - Sex: 9h às 18h"
 }];
+
 const Contato = () => {
   const [activeTab, setActiveTab] = useState<"contact" | "budget">("contact");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const contactForm = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema)
   });
+
   const budgetForm = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema)
   });
-  const onContactSubmit = (data: ContactFormData) => {
-    console.log("Contact form:", data);
-    toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
-    contactForm.reset();
+
+  const onContactSubmit = async (data: ContactFormData) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from("contact_submissions").insert({
+        name: data.name,
+        email: data.email,
+        phone: data.phone || null,
+        message: data.message,
+      });
+
+      if (error) throw error;
+
+      toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
+      contactForm.reset();
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      toast.error("Erro ao enviar mensagem. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  const onBudgetSubmit = (data: BudgetFormData) => {
-    console.log("Budget form:", data);
-    toast.success("Solicitação de orçamento enviada! Nossa equipe analisará seu projeto.");
-    budgetForm.reset();
+
+  const onBudgetSubmit = async (data: BudgetFormData) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from("budget_submissions").insert({
+        name: data.name,
+        email: data.email,
+        phone: data.phone || null,
+        company: data.company || null,
+        project_type: data.projectType,
+        budget_range: data.budget,
+        deadline: data.deadline || null,
+        description: data.description,
+      });
+
+      if (error) throw error;
+
+      toast.success("Solicitação de orçamento enviada! Nossa equipe analisará seu projeto.");
+      budgetForm.reset();
+    } catch (error) {
+      console.error("Error submitting budget form:", error);
+      toast.error("Erro ao enviar solicitação. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   return <div className="min-h-screen bg-background pt-24">
       {/* Hero */}
@@ -172,8 +220,8 @@ const Contato = () => {
                       {contactForm.formState.errors.message && <p className="text-sm text-destructive">{contactForm.formState.errors.message.message}</p>}
                     </div>
 
-                    <Button type="submit" className="w-full cyber-button">
-                      <span className="text-secondary-foreground">Enviar Mensagem</span>
+                    <Button type="submit" disabled={isSubmitting} className="w-full cyber-button">
+                      <span>{isSubmitting ? "Enviando..." : "Enviar Mensagem"}</span>
                     </Button>
                   </form>
                 </AnimatedCard>
@@ -245,8 +293,8 @@ const Contato = () => {
                       {budgetForm.formState.errors.description && <p className="text-sm text-destructive">{budgetForm.formState.errors.description.message}</p>}
                     </div>
 
-                    <Button type="submit" className="w-full cyber-button">
-                      <span>Solicitar Orçamento</span>
+                    <Button type="submit" disabled={isSubmitting} className="w-full cyber-button">
+                      <span>{isSubmitting ? "Enviando..." : "Solicitar Orçamento"}</span>
                     </Button>
                   </form>
                 </AnimatedCard>
