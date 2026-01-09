@@ -121,7 +121,7 @@ export function AdminSidebar({ activeSection, onSectionChange, counts, onRefresh
           variant="outline" 
           size="sm" 
           onClick={onRefresh}
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 text-foreground border-border hover:bg-muted"
         >
           <RefreshCw size={16} />
           {!isCollapsed && "Atualizar"}
@@ -130,7 +130,7 @@ export function AdminSidebar({ activeSection, onSectionChange, counts, onRefresh
           variant="destructive" 
           size="sm" 
           onClick={handleSignOut}
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 text-destructive-foreground"
         >
           <LogOut size={16} />
           {!isCollapsed && "Sair"}
