@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ShoppingCart, Package, Key, Code, Zap, Star, Check, ExternalLink } from "lucide-react";
+import { ShoppingCart, Package, Key, Code, Zap, Star, Check, ExternalLink, Rocket, Shield, Cpu } from "lucide-react";
 import { SectionTitle } from "@/components/SectionTitle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Import images
+import heroBanner from "@/assets/store-hero-banner.jpg";
+import productErp from "@/assets/product-erp.jpg";
+import productEcommerce from "@/assets/product-ecommerce.jpg";
+import productSaas from "@/assets/product-saas.jpg";
+import productLanding from "@/assets/product-landing.jpg";
+import productDashboard from "@/assets/product-dashboard.jpg";
 
 interface Product {
   id: string;
@@ -16,7 +24,7 @@ interface Product {
   category: "license" | "system" | "template";
   features: string[];
   popular?: boolean;
-  image?: string;
+  image: string;
 }
 
 const products: Product[] = [
@@ -35,7 +43,8 @@ const products: Product[] = [
       "Suporte por 6 meses",
       "Atualizações inclusas"
     ],
-    popular: true
+    popular: true,
+    image: productErp
   },
   {
     id: "2",
@@ -51,7 +60,8 @@ const products: Product[] = [
       "Painel administrativo",
       "Sistema de cupons",
       "Multi-idiomas"
-    ]
+    ],
+    image: productEcommerce
   },
   {
     id: "3",
@@ -65,7 +75,8 @@ const products: Product[] = [
       "API ilimitada",
       "SSL incluído",
       "Backups diários"
-    ]
+    ],
+    image: productSaas
   },
   {
     id: "4",
@@ -82,7 +93,8 @@ const products: Product[] = [
       "Backups em tempo real",
       "Suporte prioritário"
     ],
-    popular: true
+    popular: true,
+    image: productSaas
   },
   {
     id: "5",
@@ -96,7 +108,8 @@ const products: Product[] = [
       "SEO otimizado",
       "Fácil customização",
       "Documentação completa"
-    ]
+    ],
+    image: productLanding
   },
   {
     id: "6",
@@ -112,7 +125,8 @@ const products: Product[] = [
       "Tabelas avançadas",
       "Formulários prontos",
       "Código limpo"
-    ]
+    ],
+    image: productDashboard
   }
 ];
 
@@ -143,29 +157,113 @@ export default function Loja() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 mb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center max-w-3xl mx-auto"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
-            <ShoppingCart className="w-4 h-4 text-primary" />
-            <span className="text-sm text-primary font-medium">Loja de Produtos Digitais</span>
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Soluções <span className="text-gradient">Prontas</span> para seu Negócio
-          </h1>
-          
-          <p className="text-lg text-muted-foreground">
-            Adquira sistemas completos, licenças de software e templates profissionais 
-            desenvolvidos com as melhores tecnologias do mercado.
-          </p>
-        </motion.div>
+    <div className="min-h-screen pt-20 pb-16">
+      {/* Hero Banner Section */}
+      <section className="relative w-full h-[500px] md:h-[600px] overflow-hidden mb-16">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img 
+            src={heroBanner} 
+            alt="Soluções Digitais" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-background/60" />
+        </div>
+
+        {/* Animated Grid Overlay */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `linear-gradient(hsl(var(--primary) / 0.3) 1px, transparent 1px),
+                              linear-gradient(90deg, hsl(var(--primary) / 0.3) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px'
+          }} />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 container mx-auto px-4 h-full flex flex-col justify-center items-center text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="max-w-4xl"
+          >
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/40 backdrop-blur-sm mb-6"
+            >
+              <Cpu className="w-4 h-4 text-primary animate-pulse" />
+              <span className="text-sm text-primary font-medium">Tecnologia de Ponta</span>
+            </motion.div>
+
+            {/* Title */}
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+              <span className="text-foreground">Soluções </span>
+              <span className="text-gradient">Digitais</span>
+              <br />
+              <span className="text-foreground">para seu </span>
+              <span className="text-gradient">Negócio</span>
+            </h1>
+
+            {/* Description */}
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Sistemas prontos, licenças de software e templates profissionais 
+              desenvolvidos com as melhores tecnologias do mercado.
+            </p>
+
+            {/* Feature Pills */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex flex-wrap justify-center gap-4 mb-8"
+            >
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-card/50 border border-border backdrop-blur-sm">
+                <Rocket className="w-4 h-4 text-primary" />
+                <span className="text-sm text-foreground">Deploy Instantâneo</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-card/50 border border-border backdrop-blur-sm">
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-sm text-foreground">100% Seguro</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-card/50 border border-border backdrop-blur-sm">
+                <Zap className="w-4 h-4 text-primary" />
+                <span className="text-sm text-foreground">Alta Performance</span>
+              </div>
+            </motion.div>
+
+            {/* CTA Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg">
+                <ShoppingCart className="w-5 h-5 mr-2" />
+                Ver Produtos
+              </Button>
+            </motion.div>
+          </motion.div>
+
+          {/* Scroll Indicator */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          >
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-6 h-10 rounded-full border-2 border-primary/50 flex items-start justify-center p-2"
+            >
+              <motion.div className="w-1.5 h-1.5 rounded-full bg-primary" />
+            </motion.div>
+          </motion.div>
+        </div>
       </section>
 
       {/* Products Section */}
@@ -205,9 +303,9 @@ export default function Loja() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className={`relative h-full flex flex-col bg-card/50 border-border hover:border-primary/50 transition-all duration-300 group ${product.popular ? 'ring-2 ring-primary/50' : ''}`}>
+                <Card className={`relative h-full flex flex-col bg-card/50 border-border hover:border-primary/50 transition-all duration-300 group overflow-hidden ${product.popular ? 'ring-2 ring-primary/50' : ''}`}>
                   {product.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <div className="absolute top-4 right-4 z-20">
                       <Badge className="bg-primary text-primary-foreground px-3 py-1">
                         <Star className="w-3 h-3 mr-1" />
                         Popular
@@ -215,15 +313,23 @@ export default function Loja() {
                     </div>
                   )}
                   
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <CategoryIcon className="w-5 h-5" />
-                      </div>
-                      <Badge variant="outline" className="text-xs">
+                  {/* Product Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <img 
+                      src={product.image} 
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
+                    <div className="absolute bottom-4 left-4">
+                      <Badge variant="outline" className="bg-card/80 backdrop-blur-sm text-xs">
+                        <CategoryIcon className="w-3 h-3 mr-1" />
                         {categoryLabels[product.category]}
                       </Badge>
                     </div>
+                  </div>
+                  
+                  <CardHeader className="pb-4">
                     <CardTitle className="text-xl group-hover:text-primary transition-colors">
                       {product.name}
                     </CardTitle>
@@ -234,12 +340,17 @@ export default function Loja() {
                   
                   <CardContent className="flex-1">
                     <ul className="space-y-2">
-                      {product.features.map((feature, i) => (
+                      {product.features.slice(0, 4).map((feature, i) => (
                         <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Check className="w-4 h-4 text-primary flex-shrink-0" />
                           {feature}
                         </li>
                       ))}
+                      {product.features.length > 4 && (
+                        <li className="text-sm text-primary">
+                          +{product.features.length - 4} recursos
+                        </li>
+                      )}
                     </ul>
                   </CardContent>
                   
