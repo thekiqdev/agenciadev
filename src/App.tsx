@@ -10,6 +10,7 @@ import Servicos from "./pages/Servicos";
 import Portfolio from "./pages/Portfolio";
 import Sobre from "./pages/Sobre";
 import Contato from "./pages/Contato";
+import Loja from "./pages/Loja";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/" element={<Layout><Index /></Layout>} />
             <Route path="/servicos" element={<Layout><Servicos /></Layout>} />
             <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
+            <Route path="/loja" element={<Layout><Loja /></Layout>} />
             <Route path="/sobre" element={<Layout><Sobre /></Layout>} />
             <Route path="/contato" element={<Layout><Contato /></Layout>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
