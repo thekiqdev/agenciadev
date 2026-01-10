@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Github, Linkedin, Instagram, Mail, MapPin, Phone } from "lucide-react";
+import { Logo } from "./Logo";
 
 export const Footer = () => {
   return (
@@ -8,14 +9,7 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <span className="text-background font-bold text-xl">N</span>
-              </div>
-              <span className="text-xl font-bold">
-                <span className="text-primary">NEXUS</span>DEV
-              </span>
-            </Link>
+            <Logo size="md" />
             <p className="text-muted-foreground text-sm">
               Transformando ideias em soluções digitais inovadoras. Desenvolvimento de sistemas, 
               plataformas e SaaS com tecnologia de ponta.
@@ -92,7 +86,7 @@ export const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-3 text-muted-foreground text-sm">
                 <Mail size={16} className="text-primary" />
-                contato@nexusdev.com.br
+                contato@agenciadev.com.br
               </li>
               <li className="flex items-center gap-3 text-muted-foreground text-sm">
                 <Phone size={16} className="text-primary" />
@@ -108,7 +102,7 @@ export const Footer = () => {
 
         <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-muted-foreground text-sm">
-            © {new Date().getFullYear()} NexusDev. Todos os direitos reservados.
+            © {new Date().getFullYear()} Agência Dev. Todos os direitos reservados.
           </p>
           <div className="flex gap-6 text-sm">
             <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
