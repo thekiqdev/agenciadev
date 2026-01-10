@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { Logo } from "./Logo";
 
 const navItems = [
   { name: "Home", path: "/" },
@@ -42,14 +43,7 @@ export const Navigation = () => {
     >
       <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center group-hover:shadow-[0_0_20px_hsl(180,100%,50%,0.5)] transition-shadow duration-300">
-            <span className="text-background font-bold text-xl">N</span>
-          </div>
-          <span className="text-xl font-bold text-foreground">
-            <span className="text-primary">NEXUS</span>DEV
-          </span>
-        </Link>
+        <Logo size="md" />
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
