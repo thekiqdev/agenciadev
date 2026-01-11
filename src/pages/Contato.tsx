@@ -12,14 +12,12 @@ import { Label } from "@/components/ui/label";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import { supabase } from "@/integrations/supabase/client";
-
 const contactSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
   phone: z.string().optional(),
   message: z.string().min(10, "Mensagem deve ter pelo menos 10 caracteres").max(2000, "Mensagem muito longa")
 });
-
 const budgetSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
@@ -30,13 +28,10 @@ const budgetSchema = z.object({
   deadline: z.string().optional(),
   description: z.string().min(20, "Descreva seu projeto com mais detalhes").max(5000, "Descrição muito longa")
 });
-
 type ContactFormData = z.infer<typeof contactSchema>;
 type BudgetFormData = z.infer<typeof budgetSchema>;
-
 const projectTypes = ["Sistema de Gestão", "Plataforma Digital", "Solução SaaS", "Site Institucional", "Landing Page", "E-commerce", "Aplicativo Web", "Manutenção/Suporte", "Outro"];
 const budgetRanges = ["Até R$ 10.000", "R$ 10.000 - R$ 30.000", "R$ 30.000 - R$ 50.000", "R$ 50.000 - R$ 100.000", "Acima de R$ 100.000", "A definir"];
-
 const contactInfo = [{
   icon: Mail,
   title: "E-mail",
@@ -56,31 +51,27 @@ const contactInfo = [{
   title: "Horário",
   value: "Seg - Sex: 9h às 18h"
 }];
-
 const Contato = () => {
   const [activeTab, setActiveTab] = useState<"contact" | "budget">("contact");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const contactForm = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema)
   });
-
   const budgetForm = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema)
   });
-
   const onContactSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("contact_submissions").insert({
+      const {
+        error
+      } = await supabase.from("contact_submissions").insert({
         name: data.name,
         email: data.email,
         phone: data.phone || null,
-        message: data.message,
+        message: data.message
       });
-
       if (error) throw error;
-
       toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
       contactForm.reset();
     } catch (error) {
@@ -90,11 +81,12 @@ const Contato = () => {
       setIsSubmitting(false);
     }
   };
-
   const onBudgetSubmit = async (data: BudgetFormData) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("budget_submissions").insert({
+      const {
+        error
+      } = await supabase.from("budget_submissions").insert({
         name: data.name,
         email: data.email,
         phone: data.phone || null,
@@ -102,11 +94,9 @@ const Contato = () => {
         project_type: data.projectType,
         budget_range: data.budget,
         deadline: data.deadline || null,
-        description: data.description,
+        description: data.description
       });
-
       if (error) throw error;
-
       toast.success("Solicitação de orçamento enviada! Nossa equipe analisará seu projeto.");
       budgetForm.reset();
     } catch (error) {
@@ -221,7 +211,7 @@ const Contato = () => {
                     </div>
 
                     <Button type="submit" disabled={isSubmitting} className="w-full cyber-button">
-                      <span>{isSubmitting ? "Enviando..." : "Enviar Mensagem"}</span>
+                      <span className="text-secondary-foreground">{isSubmitting ? "Enviando..." : "Enviar Mensagem"}</span>
                     </Button>
                   </form>
                 </AnimatedCard>
