@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
-import { Mail, FileText, FolderOpen, TrendingUp } from "lucide-react";
+import { Mail, FileText, FolderOpen, TrendingUp, ShoppingBag } from "lucide-react";
 
 interface DashboardOverviewProps {
   counts: {
     contacts: number;
     budgets: number;
     portfolio: number;
+    products: number;
   };
   onNavigate: (section: string) => void;
 }
@@ -32,6 +33,13 @@ const stats = [
     color: "from-accent to-accent/50",
     description: "Itens cadastrados"
   },
+  { 
+    id: "products", 
+    title: "Produtos", 
+    icon: ShoppingBag, 
+    color: "from-green-500 to-green-500/50",
+    description: "Produtos na loja"
+  },
 ];
 
 export function DashboardOverview({ counts, onNavigate }: DashboardOverviewProps) {
@@ -40,6 +48,7 @@ export function DashboardOverview({ counts, onNavigate }: DashboardOverviewProps
       case "contacts": return counts.contacts;
       case "budgets": return counts.budgets;
       case "portfolio": return counts.portfolio;
+      case "products": return counts.products;
       default: return 0;
     }
   };
@@ -51,7 +60,7 @@ export function DashboardOverview({ counts, onNavigate }: DashboardOverviewProps
         <p className="text-muted-foreground">Visão geral do sistema</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.id}
@@ -86,7 +95,7 @@ export function DashboardOverview({ counts, onNavigate }: DashboardOverviewProps
 
       <div className="rounded-xl border border-border bg-card p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">Acesso Rápido</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <button
             onClick={() => onNavigate("contacts")}
             className="flex items-center gap-3 p-4 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-left"
@@ -115,6 +124,16 @@ export function DashboardOverview({ counts, onNavigate }: DashboardOverviewProps
             <div>
               <p className="font-medium text-foreground">Ver Portfólio</p>
               <p className="text-xs text-muted-foreground">Gerenciar projetos</p>
+            </div>
+          </button>
+          <button
+            onClick={() => onNavigate("products")}
+            className="flex items-center gap-3 p-4 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-left"
+          >
+            <ShoppingBag className="w-5 h-5 text-green-500" />
+            <div>
+              <p className="font-medium text-foreground">Ver Produtos</p>
+              <p className="text-xs text-muted-foreground">Gerenciar loja</p>
             </div>
           </button>
         </div>

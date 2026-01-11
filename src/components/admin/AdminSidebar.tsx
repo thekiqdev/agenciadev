@@ -5,7 +5,8 @@ import {
   FolderOpen, 
   LogOut,
   LayoutDashboard,
-  RefreshCw
+  RefreshCw,
+  ShoppingBag
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,7 @@ interface AdminSidebarProps {
     contacts: number;
     budgets: number;
     portfolio: number;
+    products: number;
   };
   onRefresh: () => void;
 }
@@ -39,6 +41,7 @@ const menuItems = [
   { id: "contacts", title: "Contatos", icon: Mail },
   { id: "budgets", title: "Orçamentos", icon: FileText },
   { id: "portfolio", title: "Portfólio", icon: FolderOpen },
+  { id: "products", title: "Produtos", icon: ShoppingBag },
 ];
 
 export function AdminSidebar({ activeSection, onSectionChange, counts, onRefresh }: AdminSidebarProps) {
@@ -57,6 +60,7 @@ export function AdminSidebar({ activeSection, onSectionChange, counts, onRefresh
       case "contacts": return counts.contacts;
       case "budgets": return counts.budgets;
       case "portfolio": return counts.portfolio;
+      case "products": return counts.products;
       default: return null;
     }
   };
