@@ -211,7 +211,7 @@ const Contato = () => {
                     </div>
 
                     <Button type="submit" disabled={isSubmitting} className="w-full cyber-button">
-                      <span className="text-secondary-foreground">{isSubmitting ? "Enviando..." : "Enviar Mensagem"}</span>
+                      <span>{isSubmitting ? "Enviando..." : "Enviar Mensagem"}</span>
                     </Button>
                   </form>
                 </AnimatedCard>
