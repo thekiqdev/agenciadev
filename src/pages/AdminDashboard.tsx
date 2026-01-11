@@ -13,6 +13,7 @@ import { DashboardOverview } from "@/components/admin/DashboardOverview";
 import { ContactsSection } from "@/components/admin/ContactsSection";
 import { BudgetsSection } from "@/components/admin/BudgetsSection";
 import { PortfolioSection } from "@/components/admin/PortfolioSection";
+import { ProductsSection } from "@/components/admin/ProductsSection";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -50,6 +51,20 @@ interface PortfolioItem {
   created_at: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  original_price: number | null;
+  category: string;
+  features: string[];
+  image_url: string | null;
+  popular: boolean;
+  active: boolean;
+  created_at: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
@@ -57,10 +72,13 @@ const AdminDashboard = () => {
   const [contacts, setContacts] = useState<ContactSubmission[]>([]);
   const [budgets, setBudgets] = useState<BudgetSubmission[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ContactSubmission | BudgetSubmission | null>(null);
   const [showPortfolioForm, setShowPortfolioForm] = useState(false);
   const [editingPortfolio, setEditingPortfolio] = useState<PortfolioItem | null>(null);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [portfolioForm, setPortfolioForm] = useState({
     title: "",
@@ -70,6 +88,18 @@ const AdminDashboard = () => {
     technologies: "",
     link: "",
     featured: false,
+  });
+
+  const [productForm, setProductForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    original_price: "",
+    category: "",
+    features: "",
+    image_url: "",
+    popular: false,
+    active: true,
   });
 
   useEffect(() => {
@@ -87,19 +117,22 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [contactsRes, budgetsRes, portfolioRes] = await Promise.all([
+      const [contactsRes, budgetsRes, portfolioRes, productsRes] = await Promise.all([
         supabase.from("contact_submissions").select("*").order("created_at", { ascending: false }),
         supabase.from("budget_submissions").select("*").order("created_at", { ascending: false }),
         supabase.from("portfolio_items").select("*").order("created_at", { ascending: false }),
+        supabase.from("products").select("*").order("created_at", { ascending: false }),
       ]);
 
       if (contactsRes.error) throw contactsRes.error;
       if (budgetsRes.error) throw budgetsRes.error;
       if (portfolioRes.error) throw portfolioRes.error;
+      if (productsRes.error) throw productsRes.error;
 
       setContacts(contactsRes.data || []);
       setBudgets(budgetsRes.data || []);
       setPortfolioItems(portfolioRes.data || []);
+      setProducts(productsRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Erro ao carregar dados");
@@ -142,6 +175,18 @@ const AdminDashboard = () => {
     }
     toast.success("Item excluído");
     setPortfolioItems(portfolioItems.filter((p) => p.id !== id));
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+    
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir produto");
+      return;
+    }
+    toast.success("Produto excluído");
+    setProducts(products.filter((p) => p.id !== id));
   };
 
   const handlePortfolioSubmit = async (e: React.FormEvent) => {
@@ -222,6 +267,92 @@ const AdminDashboard = () => {
     setShowPortfolioForm(true);
   };
 
+  const handleProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const featuresArray = productForm.features.split(",").map((f) => f.trim()).filter(Boolean);
+    
+    const data = {
+      name: productForm.name,
+      description: productForm.description,
+      price: parseFloat(productForm.price),
+      original_price: productForm.original_price ? parseFloat(productForm.original_price) : null,
+      category: productForm.category,
+      features: featuresArray,
+      image_url: productForm.image_url || null,
+      popular: productForm.popular,
+      active: productForm.active,
+    };
+
+    if (editingProduct) {
+      const { error } = await supabase
+        .from("products")
+        .update(data)
+        .eq("id", editingProduct.id);
+      
+      if (error) {
+        toast.error("Erro ao atualizar produto");
+        return;
+      }
+      toast.success("Produto atualizado");
+    } else {
+      const { error } = await supabase.from("products").insert(data);
+      
+      if (error) {
+        toast.error("Erro ao criar produto");
+        return;
+      }
+      toast.success("Produto criado");
+    }
+
+    setShowProductForm(false);
+    setEditingProduct(null);
+    setProductForm({
+      name: "",
+      description: "",
+      price: "",
+      original_price: "",
+      category: "",
+      features: "",
+      image_url: "",
+      popular: false,
+      active: true,
+    });
+    fetchData();
+  };
+
+  const openEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setProductForm({
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      original_price: product.original_price?.toString() || "",
+      category: product.category,
+      features: product.features.join(", "),
+      image_url: product.image_url || "",
+      popular: product.popular,
+      active: product.active,
+    });
+    setShowProductForm(true);
+  };
+
+  const openNewProduct = () => {
+    setEditingProduct(null);
+    setProductForm({
+      name: "",
+      description: "",
+      price: "",
+      original_price: "",
+      category: "",
+      features: "",
+      image_url: "",
+      popular: false,
+      active: true,
+    });
+    setShowProductForm(true);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("pt-BR", {
       day: "2-digit",
@@ -244,6 +375,7 @@ const AdminDashboard = () => {
     contacts: contacts.length,
     budgets: budgets.length,
     portfolio: portfolioItems.length,
+    products: products.length,
   };
 
   return (
@@ -269,6 +401,7 @@ const AdminDashboard = () => {
                   {activeSection === "contacts" && "Contatos"}
                   {activeSection === "budgets" && "Orçamentos"}
                   {activeSection === "portfolio" && "Portfólio"}
+                  {activeSection === "products" && "Produtos"}
                 </h1>
               </div>
             </div>
@@ -301,6 +434,15 @@ const AdminDashboard = () => {
                 onEdit={openEditPortfolio}
                 onDelete={handleDeletePortfolio}
                 onNew={openNewPortfolio}
+                formatDate={formatDate}
+              />
+            )}
+            {activeSection === "products" && (
+              <ProductsSection
+                products={products}
+                onEdit={openEditProduct}
+                onDelete={handleDeleteProduct}
+                onNew={openNewProduct}
                 formatDate={formatDate}
               />
             )}
@@ -508,6 +650,162 @@ const AdminDashboard = () => {
                     type="button"
                     variant="outline"
                     onClick={() => setShowPortfolioForm(false)}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Product Form Modal */}
+        {showProductForm && (
+          <div
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowProductForm(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card border border-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+            >
+              <div className="flex items-start justify-between mb-6">
+                <h2 className="text-xl font-bold text-foreground">
+                  {editingProduct ? "Editar Produto" : "Novo Produto"}
+                </h2>
+                <button
+                  onClick={() => setShowProductForm(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleProductSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="product-name">Nome do Produto *</Label>
+                  <Input
+                    id="product-name"
+                    value={productForm.name}
+                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                    required
+                    className="bg-muted border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-category">Categoria *</Label>
+                  <select
+                    id="product-category"
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                    required
+                    className="w-full h-10 px-3 rounded-md bg-muted border border-border text-foreground"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="system">Sistema</option>
+                    <option value="license">Licença</option>
+                    <option value="template">Template</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-description">Descrição *</Label>
+                  <Textarea
+                    id="product-description"
+                    value={productForm.description}
+                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                    required
+                    rows={3}
+                    className="bg-muted border-border"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="product-price">Preço (R$) *</Label>
+                    <Input
+                      id="product-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={productForm.price}
+                      onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                      required
+                      className="bg-muted border-border"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="product-original-price">Preço Original (R$)</Label>
+                    <Input
+                      id="product-original-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={productForm.original_price}
+                      onChange={(e) => setProductForm({ ...productForm, original_price: e.target.value })}
+                      placeholder="Para mostrar desconto"
+                      className="bg-muted border-border"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-image">URL da Imagem</Label>
+                  <Input
+                    id="product-image"
+                    value={productForm.image_url}
+                    onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })}
+                    placeholder="https://exemplo.com/imagem.jpg"
+                    className="bg-muted border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-features">Recursos (separados por vírgula)</Label>
+                  <Textarea
+                    id="product-features"
+                    value={productForm.features}
+                    onChange={(e) => setProductForm({ ...productForm, features: e.target.value })}
+                    placeholder="Dashboard completo, Gestão de estoque, Relatórios"
+                    rows={3}
+                    className="bg-muted border-border"
+                  />
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="product-popular"
+                      checked={productForm.popular}
+                      onChange={(e) => setProductForm({ ...productForm, popular: e.target.checked })}
+                      className="rounded border-border"
+                    />
+                    <Label htmlFor="product-popular">Marcar como Popular</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="product-active"
+                      checked={productForm.active}
+                      onChange={(e) => setProductForm({ ...productForm, active: e.target.checked })}
+                      className="rounded border-border"
+                    />
+                    <Label htmlFor="product-active">Produto Ativo</Label>
+                  </div>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <Button type="submit" className="flex-1 cyber-button">
+                    <span>{editingProduct ? "Salvar Alterações" : "Criar Produto"}</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowProductForm(false)}
                   >
                     Cancelar
                   </Button>
