@@ -274,7 +274,7 @@ const Contato = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="budget-deadline">Prazo Desejado</Label>
-                      <Input id="budget-deadline" placeholder="Ex: 3 meses, Janeiro/2025..." {...budgetForm.register("deadline")} className="bg-muted border-border" />
+                      <Input id="budget-deadline" placeholder="Ex: 3 meses, Janeiro/2025..." className="bg-muted border-border text-secondary-foreground" />
                     </div>
 
                     <div className="space-y-2">
