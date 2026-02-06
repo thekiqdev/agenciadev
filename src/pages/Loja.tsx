@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShoppingCart, Package, Key, Code, Zap, Star, Check, ExternalLink, Rocket, Shield, Cpu } from "lucide-react";
 import { SectionTitle } from "@/components/SectionTitle";
@@ -6,131 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
-// Import images
 import heroBanner from "@/assets/store-hero-banner.jpg";
-import productErp from "@/assets/product-erp.jpg";
-import productEcommerce from "@/assets/product-ecommerce.jpg";
-import productSaas from "@/assets/product-saas.jpg";
-import productLanding from "@/assets/product-landing.jpg";
-import productDashboard from "@/assets/product-dashboard.jpg";
 
 interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
-  originalPrice?: number;
-  category: "license" | "system" | "template";
+  original_price: number | null;
+  category: string;
   features: string[];
-  popular?: boolean;
-  image: string;
+  popular: boolean;
+  image_url: string | null;
+  active: boolean;
 }
 
-const products: Product[] = [
-  {
-    id: "1",
-    name: "Sistema de Gestão Empresarial",
-    description: "ERP completo para pequenas e médias empresas com módulos de vendas, estoque, financeiro e RH.",
-    price: 2997,
-    originalPrice: 4997,
-    category: "system",
-    features: [
-      "Dashboard completo",
-      "Gestão de estoque",
-      "Controle financeiro",
-      "Relatórios avançados",
-      "Suporte por 6 meses",
-      "Atualizações inclusas"
-    ],
-    popular: true,
-    image: productErp
-  },
-  {
-    id: "2",
-    name: "E-commerce Pro",
-    description: "Plataforma de e-commerce pronta para uso com integração de pagamentos e gestão de pedidos.",
-    price: 1997,
-    originalPrice: 2997,
-    category: "system",
-    features: [
-      "Catálogo de produtos",
-      "Carrinho de compras",
-      "Integração Stripe/PagSeguro",
-      "Painel administrativo",
-      "Sistema de cupons",
-      "Multi-idiomas"
-    ],
-    image: productEcommerce
-  },
-  {
-    id: "3",
-    name: "Licença SaaS Starter",
-    description: "Licença para usar nossa infraestrutura SaaS com até 100 usuários ativos.",
-    price: 297,
-    category: "license",
-    features: [
-      "Até 100 usuários",
-      "10GB de armazenamento",
-      "API ilimitada",
-      "SSL incluído",
-      "Backups diários"
-    ],
-    image: productSaas
-  },
-  {
-    id: "4",
-    name: "Licença SaaS Business",
-    description: "Licença empresarial para usar nossa infraestrutura SaaS com usuários ilimitados.",
-    price: 997,
-    originalPrice: 1497,
-    category: "license",
-    features: [
-      "Usuários ilimitados",
-      "100GB de armazenamento",
-      "API ilimitada",
-      "SSL incluído",
-      "Backups em tempo real",
-      "Suporte prioritário"
-    ],
-    popular: true,
-    image: productSaas
-  },
-  {
-    id: "5",
-    name: "Template Landing Page",
-    description: "Template profissional para landing pages com alta conversão e design moderno.",
-    price: 197,
-    category: "template",
-    features: [
-      "Design responsivo",
-      "Animações suaves",
-      "SEO otimizado",
-      "Fácil customização",
-      "Documentação completa"
-    ],
-    image: productLanding
-  },
-  {
-    id: "6",
-    name: "Template Dashboard Admin",
-    description: "Template completo de painel administrativo com componentes prontos para uso.",
-    price: 397,
-    originalPrice: 597,
-    category: "template",
-    features: [
-      "50+ componentes",
-      "Gráficos interativos",
-      "Tema dark/light",
-      "Tabelas avançadas",
-      "Formulários prontos",
-      "Código limpo"
-    ],
-    image: productDashboard
-  }
-];
-
-const categoryIcons = {
+const categoryIcons: Record<string, any> = {
   license: Key,
   system: Package,
   template: Code
@@ -144,6 +38,25 @@ const categoryLabels = {
 
 export default function Loja() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("active", true)
+        .order("popular", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setProducts(data);
+      }
+      setLoading(false);
+    };
+    fetchProducts();
+  }, []);
 
   const filteredProducts = activeCategory === "all" 
     ? products 
@@ -292,6 +205,24 @@ export default function Loja() {
         </Tabs>
 
         {/* Products Grid */}
+        {loading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="bg-card/50 border-border overflow-hidden">
+                <Skeleton className="h-48 w-full" />
+                <CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-full mt-2" /></CardHeader>
+                <CardContent><Skeleton className="h-20 w-full" /></CardContent>
+                <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-16">
+            <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Nenhum produto encontrado</h3>
+            <p className="text-muted-foreground">Não há produtos disponíveis nesta categoria no momento.</p>
+          </div>
+        ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product, index) => {
             const CategoryIcon = categoryIcons[product.category];
@@ -316,7 +247,7 @@ export default function Loja() {
                   {/* Product Image */}
                   <div className="relative h-48 overflow-hidden">
                     <img 
-                      src={product.image} 
+                      src={product.image_url || "/placeholder.svg"} 
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
@@ -356,9 +287,9 @@ export default function Loja() {
                   
                   <CardFooter className="flex flex-col gap-4 pt-4 border-t border-border">
                     <div className="flex items-center gap-2 w-full">
-                      {product.originalPrice && (
+                      {product.original_price && (
                         <span className="text-sm text-muted-foreground line-through">
-                          {formatPrice(product.originalPrice)}
+                          {formatPrice(product.original_price)}
                         </span>
                       )}
                       <span className="text-2xl font-bold text-primary">
@@ -376,6 +307,7 @@ export default function Loja() {
             );
           })}
         </div>
+        )}
 
         {/* CTA Section */}
         <motion.div
