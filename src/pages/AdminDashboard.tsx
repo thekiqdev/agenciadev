@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { X, Menu } from "lucide-react";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -753,13 +754,12 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="product-image">URL da Imagem</Label>
-                  <Input
-                    id="product-image"
+                  <Label>Imagem do Produto</Label>
+                  <ImageUpload
                     value={productForm.image_url}
-                    onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    className="bg-muted border-border"
+                    onChange={(url) => setProductForm({ ...productForm, image_url: url })}
+                    bucket="product-images"
+                    folder="products"
                   />
                 </div>
 
