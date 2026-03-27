@@ -15,7 +15,7 @@ interface PortfolioItem {
   id: string;
   title: string;
   description: string;
-  category: string;
+  categories: string[];
   image_url: string | null;
   technologies: string[];
   link: string | null;
@@ -32,6 +32,7 @@ interface PortfolioSectionProps {
 }
 
 export function PortfolioSection({ items, onEdit, onDelete, onNew, formatDate }: PortfolioSectionProps) {
+  const stripHtml = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -90,13 +91,19 @@ export function PortfolioSection({ items, onEdit, onDelete, onNew, formatDate }:
                       <div>
                         <p className="font-medium">{item.title}</p>
                         <p className="text-sm text-muted-foreground line-clamp-1 max-w-[200px]">
-                          {item.description}
+                          {stripHtml(item.description)}
                         </p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="capitalize">{item.category}</Badge>
+                    <div className="flex flex-wrap gap-1">
+                      {(item.categories ?? []).map((category) => (
+                        <Badge key={category} variant="outline" className="capitalize">
+                          {category}
+                        </Badge>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1 max-w-[150px]">

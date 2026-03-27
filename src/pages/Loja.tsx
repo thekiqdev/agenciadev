@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/integrations/api/client";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 import heroBanner from "@/assets/store-hero-banner.jpg";
 
@@ -17,7 +18,7 @@ interface Product {
   description: string;
   price: number;
   original_price: number | null;
-  category: string;
+  categories: string[];
   features: string[];
   popular: boolean;
   image_url: string | null;
@@ -40,18 +41,15 @@ export default function Loja() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("active", true)
-        .order("popular", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (!error && data) {
+      try {
+        const data = await apiFetch<Product[]>("/api/products");
         setProducts(data);
+      } catch (error) {
+        console.error("Erro ao carregar produtos:", error);
       }
       setLoading(false);
     };
@@ -60,13 +58,26 @@ export default function Loja() {
 
   const filteredProducts = activeCategory === "all" 
     ? products 
-    : products.filter(p => p.category === activeCategory);
+    : products.filter((p) => (p.categories ?? []).includes(activeCategory));
+  const stripHtml = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(price);
+  };
+
+  const buildWhatsAppUrl = (product: Product) => {
+    const phone = settings.whatsapp_number || "5511999999999";
+    const message = [
+      "Olá! Quero adquirir um produto da loja.",
+      "",
+      `Produto: ${product.name}`,
+      `Valor: ${formatPrice(product.price)}`,
+    ].join("\n");
+
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   };
 
   return (
@@ -225,7 +236,8 @@ export default function Loja() {
         ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product, index) => {
-            const CategoryIcon = categoryIcons[product.category];
+            const firstCategory = product.categories?.[0] ?? "system";
+            const CategoryIcon = categoryIcons[firstCategory];
             
             return (
               <motion.div
@@ -255,7 +267,9 @@ export default function Loja() {
                     <div className="absolute bottom-4 left-4">
                       <Badge variant="outline" className="bg-card/80 backdrop-blur-sm text-xs">
                         <CategoryIcon className="w-3 h-3 mr-1" />
-                        {categoryLabels[product.category]}
+                        {(product.categories ?? [])
+                          .map((category) => categoryLabels[category as keyof typeof categoryLabels] || category)
+                          .join(", ")}
                       </Badge>
                     </div>
                   </div>
@@ -265,7 +279,7 @@ export default function Loja() {
                       {product.name}
                     </CardTitle>
                     <CardDescription className="text-muted-foreground">
-                      {product.description}
+                      {stripHtml(product.description)}
                     </CardDescription>
                   </CardHeader>
                   
@@ -297,9 +311,11 @@ export default function Loja() {
                       </span>
                     </div>
                     
-                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Adquirir Agora
+                    <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <a href={buildWhatsAppUrl(product)} target="_blank" rel="noopener noreferrer">
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Adquirir Agora
+                      </a>
                     </Button>
                   </CardFooter>
                 </Card>

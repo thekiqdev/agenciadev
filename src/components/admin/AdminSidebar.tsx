@@ -6,7 +6,8 @@ import {
   LogOut,
   LayoutDashboard,
   RefreshCw,
-  ShoppingBag
+  ShoppingBag,
+  Settings
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +43,7 @@ const menuItems = [
   { id: "budgets", title: "Orçamentos", icon: FileText },
   { id: "portfolio", title: "Portfólio", icon: FolderOpen },
   { id: "products", title: "Produtos", icon: ShoppingBag },
+  { id: "settings", title: "Configurações", icon: Settings },
 ];
 
 export function AdminSidebar({ activeSection, onSectionChange, counts, onRefresh }: AdminSidebarProps) {

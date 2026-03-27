@@ -18,7 +18,7 @@ interface Product {
   description: string;
   price: number;
   original_price: number | null;
-  category: string;
+  categories: string[];
   features: string[];
   image_url: string | null;
   popular: boolean;
@@ -47,6 +47,7 @@ const categoryLabels = {
 };
 
 export function ProductsSection({ products, onEdit, onDelete, onNew, formatDate }: ProductsSectionProps) {
+  const stripHtml = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -92,7 +93,8 @@ export function ProductsSection({ products, onEdit, onDelete, onNew, formatDate 
               </TableRow>
             ) : (
               products.map((product) => {
-                const CategoryIcon = categoryIcons[product.category as keyof typeof categoryIcons] || Package;
+                const firstCategory = product.categories?.[0];
+                const CategoryIcon = categoryIcons[firstCategory as keyof typeof categoryIcons] || Package;
                 
                 return (
                   <TableRow key={product.id} className="hover:bg-muted/30">
@@ -113,16 +115,20 @@ export function ProductsSection({ products, onEdit, onDelete, onNew, formatDate 
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-1">
-                            {product.description}
+                            {stripHtml(product.description)}
                           </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="gap-1">
-                        <CategoryIcon className="w-3 h-3" />
-                        {categoryLabels[product.category as keyof typeof categoryLabels] || product.category}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {(product.categories ?? []).map((category) => (
+                          <Badge key={category} variant="outline" className="gap-1">
+                            <CategoryIcon className="w-3 h-3" />
+                            {categoryLabels[category as keyof typeof categoryLabels] || category}
+                          </Badge>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">

@@ -15,8 +15,10 @@ import { ContactsSection } from "@/components/admin/ContactsSection";
 import { BudgetsSection } from "@/components/admin/BudgetsSection";
 import { PortfolioSection } from "@/components/admin/PortfolioSection";
 import { ProductsSection } from "@/components/admin/ProductsSection";
+import { SettingsSection } from "@/components/admin/SettingsSection";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/integrations/api/client";
 
 interface ContactSubmission {
   id: string;
@@ -44,7 +46,7 @@ interface PortfolioItem {
   id: string;
   title: string;
   description: string;
-  category: string;
+  categories: string[];
   image_url: string | null;
   technologies: string[];
   link: string | null;
@@ -58,13 +60,23 @@ interface Product {
   description: string;
   price: number;
   original_price: number | null;
-  category: string;
+  categories: string[];
   features: string[];
   image_url: string | null;
   popular: boolean;
   active: boolean;
   created_at: string;
 }
+
+interface SiteSettings {
+  site_name: string;
+  seo_description: string;
+  whatsapp_number: string;
+  updated_at?: string | null;
+}
+
+const portfolioCategoryOptions = ["sistemas", "plataformas", "saas", "sites"];
+const productCategoryOptions = ["system", "license", "template"];
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -80,11 +92,20 @@ const AdminDashboard = () => {
   const [editingPortfolio, setEditingPortfolio] = useState<PortfolioItem | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [settings, setSettings] = useState<SiteSettings>({
+    site_name: "Agencia Dev",
+    seo_description: "",
+    whatsapp_number: "",
+    updated_at: null,
+  });
+
+  const toggleSelection = (value: string, selected: string[]) =>
+    selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value];
 
   const [portfolioForm, setPortfolioForm] = useState({
     title: "",
     description: "",
-    category: "",
+    categories: [] as string[],
     image_url: "",
     technologies: "",
     link: "",
@@ -96,7 +117,7 @@ const AdminDashboard = () => {
     description: "",
     price: "",
     original_price: "",
-    category: "",
+    categories: [] as string[],
     features: "",
     image_url: "",
     popular: false,
@@ -118,22 +139,19 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [contactsRes, budgetsRes, portfolioRes, productsRes] = await Promise.all([
-        supabase.from("contact_submissions").select("*").order("created_at", { ascending: false }),
-        supabase.from("budget_submissions").select("*").order("created_at", { ascending: false }),
-        supabase.from("portfolio_items").select("*").order("created_at", { ascending: false }),
-        supabase.from("products").select("*").order("created_at", { ascending: false }),
-      ]);
+      const data = await apiFetch<{
+        contacts: ContactSubmission[];
+        budgets: BudgetSubmission[];
+        portfolio: PortfolioItem[];
+        products: Product[];
+      }>("/api/admin/dashboard");
 
-      if (contactsRes.error) throw contactsRes.error;
-      if (budgetsRes.error) throw budgetsRes.error;
-      if (portfolioRes.error) throw portfolioRes.error;
-      if (productsRes.error) throw productsRes.error;
-
-      setContacts(contactsRes.data || []);
-      setBudgets(budgetsRes.data || []);
-      setPortfolioItems(portfolioRes.data || []);
-      setProducts(productsRes.data || []);
+      setContacts(data.contacts || []);
+      setBudgets(data.budgets || []);
+      setPortfolioItems(data.portfolio || []);
+      setProducts(data.products || []);
+      const settingsData = await apiFetch<SiteSettings>("/api/admin/settings");
+      setSettings(settingsData);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Erro ao carregar dados");
@@ -145,8 +163,9 @@ const AdminDashboard = () => {
   const handleDeleteContact = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este contato?")) return;
     
-    const { error } = await supabase.from("contact_submissions").delete().eq("id", id);
-    if (error) {
+    try {
+      await apiFetch(`/api/admin/contact-submissions/${id}`, { method: "DELETE" });
+    } catch {
       toast.error("Erro ao excluir contato");
       return;
     }
@@ -157,8 +176,9 @@ const AdminDashboard = () => {
   const handleDeleteBudget = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este orçamento?")) return;
     
-    const { error } = await supabase.from("budget_submissions").delete().eq("id", id);
-    if (error) {
+    try {
+      await apiFetch(`/api/admin/budget-submissions/${id}`, { method: "DELETE" });
+    } catch {
       toast.error("Erro ao excluir orçamento");
       return;
     }
@@ -169,8 +189,9 @@ const AdminDashboard = () => {
   const handleDeletePortfolio = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este item do portfólio?")) return;
     
-    const { error } = await supabase.from("portfolio_items").delete().eq("id", id);
-    if (error) {
+    try {
+      await apiFetch(`/api/admin/portfolio-items/${id}`, { method: "DELETE" });
+    } catch {
       toast.error("Erro ao excluir item");
       return;
     }
@@ -181,8 +202,9 @@ const AdminDashboard = () => {
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este produto?")) return;
     
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) {
+    try {
+      await apiFetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    } catch {
       toast.error("Erro ao excluir produto");
       return;
     }
@@ -192,13 +214,17 @@ const AdminDashboard = () => {
 
   const handlePortfolioSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (portfolioForm.categories.length === 0) {
+      toast.error("Selecione ao menos uma categoria no portfólio");
+      return;
+    }
     
     const techArray = portfolioForm.technologies.split(",").map((t) => t.trim()).filter(Boolean);
     
     const data = {
       title: portfolioForm.title,
       description: portfolioForm.description,
-      category: portfolioForm.category,
+      categories: portfolioForm.categories,
       image_url: portfolioForm.image_url || null,
       technologies: techArray,
       link: portfolioForm.link || null,
@@ -206,20 +232,23 @@ const AdminDashboard = () => {
     };
 
     if (editingPortfolio) {
-      const { error } = await supabase
-        .from("portfolio_items")
-        .update(data)
-        .eq("id", editingPortfolio.id);
-      
-      if (error) {
+      try {
+        await apiFetch(`/api/admin/portfolio-items/${editingPortfolio.id}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+      } catch {
         toast.error("Erro ao atualizar item");
         return;
       }
       toast.success("Item atualizado");
     } else {
-      const { error } = await supabase.from("portfolio_items").insert(data);
-      
-      if (error) {
+      try {
+        await apiFetch("/api/admin/portfolio-items", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      } catch {
         toast.error("Erro ao criar item");
         return;
       }
@@ -231,7 +260,7 @@ const AdminDashboard = () => {
     setPortfolioForm({
       title: "",
       description: "",
-      category: "",
+      categories: [],
       image_url: "",
       technologies: "",
       link: "",
@@ -245,7 +274,7 @@ const AdminDashboard = () => {
     setPortfolioForm({
       title: item.title,
       description: item.description,
-      category: item.category,
+      categories: item.categories ?? [],
       image_url: item.image_url || "",
       technologies: item.technologies.join(", "),
       link: item.link || "",
@@ -259,7 +288,7 @@ const AdminDashboard = () => {
     setPortfolioForm({
       title: "",
       description: "",
-      category: "",
+      categories: [],
       image_url: "",
       technologies: "",
       link: "",
@@ -270,6 +299,10 @@ const AdminDashboard = () => {
 
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (productForm.categories.length === 0) {
+      toast.error("Selecione ao menos uma categoria no produto");
+      return;
+    }
     
     const featuresArray = productForm.features.split(",").map((f) => f.trim()).filter(Boolean);
     
@@ -278,7 +311,7 @@ const AdminDashboard = () => {
       description: productForm.description,
       price: parseFloat(productForm.price),
       original_price: productForm.original_price ? parseFloat(productForm.original_price) : null,
-      category: productForm.category,
+      categories: productForm.categories,
       features: featuresArray,
       image_url: productForm.image_url || null,
       popular: productForm.popular,
@@ -286,20 +319,23 @@ const AdminDashboard = () => {
     };
 
     if (editingProduct) {
-      const { error } = await supabase
-        .from("products")
-        .update(data)
-        .eq("id", editingProduct.id);
-      
-      if (error) {
+      try {
+        await apiFetch(`/api/admin/products/${editingProduct.id}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
+      } catch {
         toast.error("Erro ao atualizar produto");
         return;
       }
       toast.success("Produto atualizado");
     } else {
-      const { error } = await supabase.from("products").insert(data);
-      
-      if (error) {
+      try {
+        await apiFetch("/api/admin/products", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+      } catch {
         toast.error("Erro ao criar produto");
         return;
       }
@@ -313,7 +349,7 @@ const AdminDashboard = () => {
       description: "",
       price: "",
       original_price: "",
-      category: "",
+      categories: [],
       features: "",
       image_url: "",
       popular: false,
@@ -329,7 +365,7 @@ const AdminDashboard = () => {
       description: product.description,
       price: product.price.toString(),
       original_price: product.original_price?.toString() || "",
-      category: product.category,
+      categories: product.categories ?? [],
       features: product.features.join(", "),
       image_url: product.image_url || "",
       popular: product.popular,
@@ -345,7 +381,7 @@ const AdminDashboard = () => {
       description: "",
       price: "",
       original_price: "",
-      category: "",
+      categories: [],
       features: "",
       image_url: "",
       popular: false,
@@ -379,6 +415,19 @@ const AdminDashboard = () => {
     products: products.length,
   };
 
+  const saveSettings = async (nextSettings: SiteSettings) => {
+    const data = await apiFetch<SiteSettings>("/api/admin/settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        site_name: nextSettings.site_name,
+        seo_description: nextSettings.seo_description,
+        whatsapp_number: nextSettings.whatsapp_number,
+      }),
+    });
+    setSettings(data);
+    toast.success("Configurações atualizadas com sucesso");
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-background flex w-full">
@@ -403,6 +452,7 @@ const AdminDashboard = () => {
                   {activeSection === "budgets" && "Orçamentos"}
                   {activeSection === "portfolio" && "Portfólio"}
                   {activeSection === "products" && "Produtos"}
+                  {activeSection === "settings" && "Configurações"}
                 </h1>
               </div>
             </div>
@@ -446,6 +496,9 @@ const AdminDashboard = () => {
                 onNew={openNewProduct}
                 formatDate={formatDate}
               />
+            )}
+            {activeSection === "settings" && (
+              <SettingsSection settings={settings} loading={isLoading} onSave={saveSettings} />
             )}
           </main>
         </div>
@@ -571,42 +624,42 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Categoria *</Label>
-                  <select
-                    id="category"
-                    value={portfolioForm.category}
-                    onChange={(e) => setPortfolioForm({ ...portfolioForm, category: e.target.value })}
-                    required
-                    className="w-full h-10 px-3 rounded-md bg-muted border border-border text-foreground"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="sistemas">Sistemas</option>
-                    <option value="plataformas">Plataformas</option>
-                    <option value="saas">SaaS</option>
-                    <option value="sites">Sites</option>
-                  </select>
+                  <Label>Categorias *</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {portfolioCategoryOptions.map((option) => (
+                      <label key={option} className="flex items-center gap-2 text-sm rounded-md border border-border px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={portfolioForm.categories.includes(option)}
+                          onChange={() =>
+                            setPortfolioForm({
+                              ...portfolioForm,
+                              categories: toggleSelection(option, portfolioForm.categories),
+                            })
+                          }
+                        />
+                        <span className="capitalize">{option}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descrição *</Label>
-                  <Textarea
-                    id="description"
+                  <Label>Descrição *</Label>
+                  <RichTextEditor
                     value={portfolioForm.description}
-                    onChange={(e) => setPortfolioForm({ ...portfolioForm, description: e.target.value })}
-                    required
-                    rows={4}
-                    className="bg-muted border-border"
+                    onChange={(value) => setPortfolioForm({ ...portfolioForm, description: value })}
+                    placeholder="Descreva o item do portfólio"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="image_url">URL da Imagem</Label>
-                  <Input
-                    id="image_url"
+                  <Label>Imagem do Portfólio</Label>
+                  <ImageUpload
                     value={portfolioForm.image_url}
-                    onChange={(e) => setPortfolioForm({ ...portfolioForm, image_url: e.target.value })}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    className="bg-muted border-border"
+                    onChange={(url) => setPortfolioForm({ ...portfolioForm, image_url: url })}
+                    bucket="product-images"
+                    folder="portfolio"
                   />
                 </div>
 
@@ -697,30 +750,32 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="product-category">Categoria *</Label>
-                  <select
-                    id="product-category"
-                    value={productForm.category}
-                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                    required
-                    className="w-full h-10 px-3 rounded-md bg-muted border border-border text-foreground"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="system">Sistema</option>
-                    <option value="license">Licença</option>
-                    <option value="template">Template</option>
-                  </select>
+                  <Label>Categorias *</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {productCategoryOptions.map((option) => (
+                      <label key={option} className="flex items-center gap-2 text-sm rounded-md border border-border px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={productForm.categories.includes(option)}
+                          onChange={() =>
+                            setProductForm({
+                              ...productForm,
+                              categories: toggleSelection(option, productForm.categories),
+                            })
+                          }
+                        />
+                        <span className="capitalize">{option}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="product-description">Descrição *</Label>
-                  <Textarea
-                    id="product-description"
+                  <Label>Descrição *</Label>
+                  <RichTextEditor
                     value={productForm.description}
-                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                    required
-                    rows={3}
-                    className="bg-muted border-border"
+                    onChange={(value) => setProductForm({ ...productForm, description: value })}
+                    placeholder="Descreva o produto"
                   />
                 </div>
 

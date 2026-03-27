@@ -1,4 +1,5 @@
 import { MessageCircle } from "lucide-react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface WhatsAppButtonProps {
   phoneNumber?: string;
@@ -6,10 +7,12 @@ interface WhatsAppButtonProps {
 }
 
 export const WhatsAppButton = ({
-  phoneNumber = "5511999999999",
+  phoneNumber,
   message = "Olá! Gostaria de saber mais sobre os serviços da NexusDev.",
 }: WhatsAppButtonProps) => {
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+  const { settings } = useSiteSettings();
+  const targetPhone = phoneNumber ?? settings.whatsapp_number ?? "5511999999999";
+  const whatsappUrl = `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}`;
 
   return (
     <a

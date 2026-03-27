@@ -1,0 +1,17 @@
+# Postgres dedicado ao projeto (porta host 5435 → evita conflito com 5432 do Docker Desktop / outros stacks)
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agenciadev-postgres
+    restart: unless-stopped
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: agenciadev
+    volumes:
+      - agenciadev_pgdata:/var/lib/postgresql/data
+
+volumes:
+  agenciadev_pgdata:

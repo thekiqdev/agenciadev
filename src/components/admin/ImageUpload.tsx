@@ -1,8 +1,8 @@
 import { useState, useRef } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ApiError } from "@/integrations/api/client";
 
 interface ImageUploadProps {
   value: string;
@@ -31,20 +31,22 @@ export function ImageUpload({ value, onChange, bucket, folder = "" }: ImageUploa
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const fileName = `${folder ? folder + "/" : ""}${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const form = new FormData();
+      form.append("file", file);
+      form.append("bucket", bucket);
+      form.append("folder", folder);
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file);
+      const response = await fetch("/api/admin/upload-image", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new ApiError(payload?.error ?? "upload_failed", response.status, payload);
+      }
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(fileName);
-
-      onChange(publicUrl);
+      onChange(payload.url);
       toast.success("Imagem enviada com sucesso");
     } catch (error) {
       console.error("Upload error:", error);

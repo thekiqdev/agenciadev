@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ExternalLink, X, FolderOpen } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiFetch } from "@/integrations/api/client";
 
 type Category = "todos" | "sistemas" | "plataformas" | "saas" | "sites";
 
@@ -11,7 +11,7 @@ interface PortfolioItem {
   id: string;
   title: string;
   description: string;
-  category: string;
+  categories: string[];
   image_url: string | null;
   technologies: string[] | null;
   link: string | null;
@@ -39,13 +39,7 @@ const Portfolio = () => {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from("portfolio_items")
-        .select("*")
-        .order("featured", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
+      const data = await apiFetch<PortfolioItem[]>("/api/portfolio-items");
       setProjects(data || []);
     } catch (error) {
       console.error("Erro ao carregar portfólio:", error);
@@ -55,8 +49,9 @@ const Portfolio = () => {
   };
 
   const filteredProjects = projects.filter(
-    (project) => activeCategory === "todos" || project.category === activeCategory
+    (project) => activeCategory === "todos" || (project.categories ?? []).includes(activeCategory)
   );
+  const stripHtml = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
   return (
     <div className="min-h-screen bg-background pt-24">
@@ -164,7 +159,7 @@ const Portfolio = () => {
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs font-medium text-primary uppercase tracking-wider">
-                          {project.category}
+                          {(project.categories ?? []).join(", ")}
                         </span>
                         {project.featured && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent">
@@ -176,7 +171,7 @@ const Portfolio = () => {
                         {project.title}
                       </h3>
                       <p className="text-muted-foreground text-sm line-clamp-2">
-                        {project.description}
+                        {stripHtml(project.description)}
                       </p>
                       {project.technologies && project.technologies.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-4">
@@ -244,7 +239,7 @@ const Portfolio = () => {
               <div className="p-6 md:p-8">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-medium text-primary uppercase tracking-wider">
-                    {selectedProject.category}
+                    {(selectedProject.categories ?? []).join(", ")}
                   </span>
                   {selectedProject.featured && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-accent/20 text-accent">
@@ -255,9 +250,10 @@ const Portfolio = () => {
                 <h2 className="text-2xl md:text-3xl font-bold mt-2 mb-4 text-foreground">
                   {selectedProject.title}
                 </h2>
-                <p className="text-muted-foreground mb-6 text-lg">
-                  {selectedProject.description}
-                </p>
+                <div
+                  className="text-muted-foreground mb-6 text-lg prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: selectedProject.description }}
+                />
 
                 {selectedProject.technologies && selectedProject.technologies.length > 0 && (
                   <div className="mb-6">

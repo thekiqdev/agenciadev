@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
 import { Github, Linkedin, Instagram, Mail, MapPin, Phone } from "lucide-react";
 import { Logo } from "./Logo";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const Footer = () => {
+  const { settings } = useSiteSettings();
+  const formattedPhone = settings.whatsapp_number
+    ? settings.whatsapp_number.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3")
+    : "(11) 99999-9999";
+
   return (
     <footer className="bg-card border-t border-border">
       <div className="container mx-auto px-4 py-12">
@@ -11,8 +17,7 @@ export const Footer = () => {
           <div className="space-y-4">
             <Logo size="md" />
             <p className="text-muted-foreground text-sm">
-              Transformando ideias em soluções digitais inovadoras. Desenvolvimento de sistemas, 
-              plataformas e SaaS com tecnologia de ponta.
+              {settings.seo_description}
             </p>
             <div className="flex gap-4">
               <a
@@ -90,7 +95,7 @@ export const Footer = () => {
               </li>
               <li className="flex items-center gap-3 text-muted-foreground text-sm">
                 <Phone size={16} className="text-primary" />
-                (11) 99999-9999
+                {formattedPhone}
               </li>
               <li className="flex items-start gap-3 text-muted-foreground text-sm">
                 <MapPin size={16} className="text-primary mt-1" />
@@ -102,7 +107,7 @@ export const Footer = () => {
 
         <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-muted-foreground text-sm">
-            © {new Date().getFullYear()} Agência Dev. Todos os direitos reservados.
+            © {new Date().getFullYear()} {settings.site_name}. Todos os direitos reservados.
           </p>
           <div className="flex gap-6 text-sm">
             <a href="#" className="text-muted-foreground hover:text-primary transition-colors">

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { SectionTitle } from "@/components/SectionTitle";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/integrations/api/client";
 const contactSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
@@ -63,15 +63,15 @@ const Contato = () => {
   const onContactSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      const {
-        error
-      } = await supabase.from("contact_submissions").insert({
+      await apiFetch("/api/contact-submissions", {
+        method: "POST",
+        body: JSON.stringify({
         name: data.name,
         email: data.email,
         phone: data.phone || null,
         message: data.message
+        }),
       });
-      if (error) throw error;
       toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
       contactForm.reset();
     } catch (error) {
@@ -84,9 +84,9 @@ const Contato = () => {
   const onBudgetSubmit = async (data: BudgetFormData) => {
     setIsSubmitting(true);
     try {
-      const {
-        error
-      } = await supabase.from("budget_submissions").insert({
+      await apiFetch("/api/budget-submissions", {
+        method: "POST",
+        body: JSON.stringify({
         name: data.name,
         email: data.email,
         phone: data.phone || null,
@@ -95,8 +95,8 @@ const Contato = () => {
         budget_range: data.budget,
         deadline: data.deadline || null,
         description: data.description
+        }),
       });
-      if (error) throw error;
       toast.success("Solicitação de orçamento enviada! Nossa equipe analisará seu projeto.");
       budgetForm.reset();
     } catch (error) {
