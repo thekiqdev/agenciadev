@@ -1,18 +1,38 @@
-# Easypanel - Modelo de Ambiente
+# Easypanel — Docker, dois serviços e variáveis de ambiente
 
-Este arquivo mostra os valores que voce deve preencher na aba **Ambiente** de cada servico no Easypanel.
+## Dois serviços (recomendado)
 
-## 1) Servico PostgreSQL
+Sim: no Easypanel costuma-se criar **dois apps** a partir do mesmo repositório:
 
-Se usar o banco gerenciado pelo proprio Easypanel, ele normalmente gera:
+| Serviço | Função | Dockerfile | Porta interna |
+|--------|--------|------------|----------------|
+| **API** | Node (Express + uploads) | `docker/Dockerfile.api` | `3005` |
+| **Web** | Build Vite + Nginx (SPA + proxy `/api` e `/uploads`) | `docker/Dockerfile.web` | `80` |
 
-- host interno
-- porta
-- database
-- user
-- password
+O **domínio público** deve apontar para o serviço **Web**. O Nginx da imagem web encaminha `/api/*` e `/uploads/*` para a API usando a URL interna `API_INTERNAL_URL` (rede Docker do Easypanel).
 
-Com isso, monte a `DATABASE_URL` para a API:
+Alternativa: um único serviço com proxy manual no painel; este repositório cobre o modelo **API + Web** com dois Dockerfiles.
+
+---
+
+## Build no Easypanel
+
+- **Contexto (build context):** raiz do repositório (`.`).
+- **API:** Dockerfile `docker/Dockerfile.api`.
+- **Web:** Dockerfile `docker/Dockerfile.web`.
+
+Comandos locais equivalentes:
+
+```bash
+docker build -f docker/Dockerfile.api -t agenciadev-api .
+docker build -f docker/Dockerfile.web -t agenciadev-web .
+```
+
+---
+
+## 1) PostgreSQL (Easypanel ou externo)
+
+Monte a `DATABASE_URL` da API:
 
 ```text
 postgresql://USER:PASSWORD@HOST:PORT/DATABASE
@@ -20,15 +40,7 @@ postgresql://USER:PASSWORD@HOST:PORT/DATABASE
 
 ---
 
-## 2) Servico API (Node)
-
-Comando de start:
-
-```bash
-npm run api
-```
-
-Variaveis de ambiente (obrigatorias/recomendadas):
+## 2) Serviço API — variáveis (colar em **Ambiente**)
 
 ```env
 NODE_ENV=production
@@ -39,62 +51,60 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE
 JWT_SECRET=COLOQUE_UMA_CHAVE_LONGA_E_FORTE_AQUI
 JWT_EXPIRES_IN=7d
 
-FRONTEND_ORIGIN=https://SEU_DOMINIO.com
+FRONTEND_ORIGIN=https://SEU_DOMINIO_PUBLICO.com
 
-UPLOAD_DIR=/app/uploads
-UPLOAD_PUBLIC_BASE_URL=https://SEU_DOMINIO.com
+UPLOAD_DIR=/srv/agenciadev-api/uploads
+UPLOAD_PUBLIC_BASE_URL=https://SEU_DOMINIO_PUBLICO.com
 ```
 
-Notas:
+- `FRONTEND_ORIGIN`: URL final do site (sem barra no final), igual ao domínio do serviço Web.
+- `UPLOAD_PUBLIC_BASE_URL`: mesmo domínio público, para links `/uploads/...` no HTML.
+- **Volume persistente** montado em `/srv/agenciadev-api/uploads` (senão imagens somem ao recriar o container). Não monte volume na raiz `/app` nem sobre `/srv/agenciadev-api` inteiro.
 
-- `FRONTEND_ORIGIN` deve ser a URL final do site (sem barra final).
-- `UPLOAD_PUBLIC_BASE_URL` deve apontar para o mesmo dominio publico para montar URLs `/uploads/...`.
-- Garanta volume persistente para `UPLOAD_DIR` (nao efemero).
+Comando de start: já definido no Dockerfile (`node server/health.mjs`).
 
 ---
 
-## 3) Servico Frontend (Vite build + estatico)
+## 3) Serviço Web — variáveis (colar em **Ambiente**)
 
-O frontend atual usa chamadas relativas para API (`/api/...`) e uploads (`/uploads/...`).
-Por isso, o ideal e servir tudo no mesmo dominio com roteamento por path.
-
-Build:
-
-```bash
-npm ci
-npm run build
-```
-
-Publicar a pasta `dist/`.
-
-Se o seu setup de front exigir variaveis no build, voce pode definir:
+Alinhe com o **nome interno** do serviço da API no Easypanel (hostname na rede Docker).
 
 ```env
-# Opcional (hoje nao obrigatorio no codigo):
-VITE_API_BASE_URL=
+API_INTERNAL_URL=http://NOME_DO_SERVICO_API_NO_EASYPANEL:3005
 ```
 
+Exemplo: se o serviço da API se chama `agenciadev-api`, use:
+
+```env
+API_INTERNAL_URL=http://agenciadev-api:3005
+```
+
+O Dockerfile já define o padrão `http://agenciadev-api:3005`; ajuste se o nome do seu serviço for outro.
+
+Não é necessário `VITE_*` para o build atual (chamadas relativas a `/api`).
+
 ---
 
-## 4) Roteamento recomendado (mesmo dominio)
+## 4) Roteamento público
 
-- `/` e SPA -> frontend (`dist`)
-- `/api/*` -> API Node
-- `/uploads/*` -> API Node
+- Tráfego do domínio → container **Web** (porta exposta pelo painel, ex. 443 → 80).
+- `/` → arquivos estáticos; `/api/` e `/uploads/` → proxy interno para a API via `API_INTERNAL_URL`.
 
-Esse modelo evita problemas com cookie `HttpOnly` e CORS.
+Assim cookie `HttpOnly` e CORS permanecem coerentes com `FRONTEND_ORIGIN`.
 
 ---
 
-## 5) Comandos pos-deploy (uma vez)
+## 5) Pós-deploy (uma vez), na API
 
-Com `DATABASE_URL` ja configurada no servico API:
+Com `DATABASE_URL` já no ambiente do container da API:
 
 ```bash
 npm run migrate
 ```
 
-Criar admin inicial:
+(Execute via console/one-shot do Easypanel no container da API; a imagem inclui `scripts/migrate.mjs` e `postgres/migrations/`.)
+
+Admin inicial:
 
 ```bash
 ADMIN_EMAIL=seu@email.com ADMIN_PASSWORD='SuaSenhaForte123!' npm run seed:admin
@@ -105,3 +115,13 @@ Validar admin:
 ```bash
 ADMIN_EMAIL=seu@email.com npm run verify:admin
 ```
+
+Os três comandos usam os scripts já copiados na imagem da API (`migrate`, `seed:admin`, `verify:admin` no `package.json`).
+
+---
+
+## Resumo rápido — o que colar onde
+
+**API (Ambiente):** `NODE_ENV`, `PORT`, `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `FRONTEND_ORIGIN`, `UPLOAD_DIR`, `UPLOAD_PUBLIC_BASE_URL` + volume `/srv/agenciadev-api/uploads`.
+
+**Web (Ambiente):** `API_INTERNAL_URL` apontando para `http://<nome-servico-api>:3005`.
