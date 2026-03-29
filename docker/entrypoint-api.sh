@@ -3,8 +3,9 @@ set -e
 ROOT=/srv/agenciadev-api
 cd "$ROOT"
 
+# Sem esconder stderr — útil para ver o erro real (ex.: pg incompleto)
 verify_deps() {
-  node -e "require('express'); require('pg');" 2>/dev/null
+  node -e "require('express'); require('pg');"
 }
 
 if ! verify_deps; then
@@ -20,16 +21,19 @@ if ! verify_deps; then
   echo "agenciadev-api: dependências inválidas ou incompletas; a limpar node_modules..."
   rm -rf node_modules
   echo "agenciadev-api: npm ci --omit=dev..."
-  if ! env -u NODE_ENV npm ci --omit=dev; then
-    echo "agenciadev-api: npm ci falhou; a tentar npm install --omit=dev..."
-    rm -rf node_modules
-    env -u NODE_ENV npm install --omit=dev --no-audit --no-fund
-  fi
+  env -u NODE_ENV npm ci --omit=dev || echo "agenciadev-api: npm ci terminou com erro (continua para npm install)."
+fi
+
+# npm ci pode devolver exit 0 com lockfile truncado (~316 pacotes) e árvore quebrada; npm install usa só package.json
+if ! verify_deps; then
+  echo "agenciadev-api: require(express|pg) falhou após npm ci — lockfile no disco pode estar incompleto."
+  echo "agenciadev-api: a limpar node_modules e a correr npm install --omit=dev..."
+  rm -rf node_modules
+  env -u NODE_ENV npm install --omit=dev --no-audit --no-fund
 fi
 
 if ! verify_deps; then
   echo "agenciadev-api: express/pg ainda não carregam."
-  echo "  Garanta package-lock.json completo no Git e contexto de build do Easypanel com o repo inteiro."
   exit 1
 fi
 
