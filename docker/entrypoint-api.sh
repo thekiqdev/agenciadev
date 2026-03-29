@@ -3,28 +3,33 @@ set -e
 ROOT=/srv/agenciadev-api
 cd "$ROOT"
 
-# API (health.mjs) precisa de express; migrate.mjs precisa de pg — ambos em dependencies
-has_core_deps() {
-  [ -f "$ROOT/node_modules/express/package.json" ] &&
-    [ -f "$ROOT/node_modules/pg/package.json" ]
+verify_deps() {
+  node -e "require('express'); require('pg');" 2>/dev/null
 }
 
-if ! has_core_deps; then
+if ! verify_deps; then
   if [ ! -f package.json ]; then
-    echo "agenciadev-api: sem package.json em $ROOT — um volume está a substituir a imagem inteira."
-    echo "  Remova o volume montado na raiz da API; mantenha só .../uploads."
+    echo "agenciadev-api: sem package.json em $ROOT — volume a substituir a imagem."
+    echo "  Remova o volume na raiz da API; mantenha só .../uploads."
     exit 1
   fi
   if [ ! -f package-lock.json ]; then
-    echo "agenciadev-api: falta package-lock.json (imagem incompleta ou volume errado)."
+    echo "agenciadev-api: falta package-lock.json."
     exit 1
   fi
-  echo "agenciadev-api: node_modules incompleto; a correr npm ci --omit=dev (rede necessária)..."
-  env -u NODE_ENV npm ci --omit=dev
+  echo "agenciadev-api: dependências inválidas ou incompletas; a limpar node_modules..."
+  rm -rf node_modules
+  echo "agenciadev-api: npm ci --omit=dev..."
+  if ! env -u NODE_ENV npm ci --omit=dev; then
+    echo "agenciadev-api: npm ci falhou; a tentar npm install --omit=dev..."
+    rm -rf node_modules
+    env -u NODE_ENV npm install --omit=dev --no-audit --no-fund
+  fi
 fi
 
-if ! has_core_deps; then
-  echo "agenciadev-api: após npm ci ainda faltam express ou pg. Verifique rede e permissões."
+if ! verify_deps; then
+  echo "agenciadev-api: express/pg ainda não carregam."
+  echo "  Garanta package-lock.json completo no Git e contexto de build do Easypanel com o repo inteiro."
   exit 1
 fi
 
