@@ -1,21 +1,21 @@
 # API Node (Express) — Easypanel
 # node_modules fica em /opt/... (fora do volume). Em runtime liga-se por symlink a /srv/.../node_modules.
-# Assim um volume montado em /srv/agenciadev-api não substitui as dependências da imagem.
 
 FROM node:22-alpine AS deps
 WORKDIR /srv/agenciadev-api
 COPY package.json package-lock.json ./
-RUN env -u NODE_ENV npm ci --omit=dev
+# npm ci com lockfile incompleto (ex.: zip do build) pode instalar ~316 pacotes sem express/pg no topo.
+# npm install --omit=dev honra package.json e repõe o que faltar.
+RUN rm -rf node_modules && \
+    env -u NODE_ENV npm install --omit=dev --no-audit --no-fund && \
+    node -e "require('express'); require('pg');"
 
 FROM node:22-alpine
 WORKDIR /srv/agenciadev-api
 ENV NODE_ENV=production
 ENV PORT=3005
 
-# Bundle imutável — não fica sob /srv (evita ser apagado por bind mount)
 COPY --from=deps /srv/agenciadev-api/node_modules /opt/agenciadev-api-image/node_modules
-RUN test -f /opt/agenciadev-api-image/node_modules/express/package.json && \
-    test -f /opt/agenciadev-api-image/node_modules/pg/package.json
 
 COPY package.json package-lock.json ./
 COPY server ./server

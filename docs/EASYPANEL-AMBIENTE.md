@@ -60,7 +60,7 @@ UPLOAD_PUBLIC_BASE_URL=https://SEU_DOMINIO_PUBLICO.com
 - `FRONTEND_ORIGIN`: URL final do site (sem barra no final), igual ao domínio do serviço Web.
 - `UPLOAD_PUBLIC_BASE_URL`: mesmo domínio público, para links `/uploads/...` no HTML.
 - **Volume persistente** montado em `/srv/agenciadev-api/uploads` (senão imagens somem ao recriar o container). Não monte volume na raiz `/app` nem sobre `/srv/agenciadev-api` inteiro.
-- As dependências de produção ficam na imagem em `/opt/agenciadev-api-image/node_modules` e o arranque cria um symlink em `/srv/agenciadev-api/node_modules` — não é necessário (nem recomendado) correr `npm install` no volume.
+- As dependências de produção ficam na imagem em `/opt/agenciadev-api-image/node_modules` e o arranque cria um symlink em `/srv/agenciadev-api/node_modules` — não é necessário (nem recomendado) correr `npm install` no volume. O build da imagem usa `npm install --omit=dev` (e não só `npm ci`) para tolerar `package-lock.json` incompleto em alguns hosts de build.
 
 Comando de start: já definido no Dockerfile (`node server/health.mjs`).
 
