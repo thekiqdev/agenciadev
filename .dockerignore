@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+uploads
+.env
+.env.*
+*.log
+coverage
+.vscode
+.cursor
+**/agent-transcripts
