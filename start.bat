@@ -9,5 +9,6 @@ where npm >nul 2>&1 || (
 )
 
 echo [start] Iniciando ambiente local ^(Postgres via Docker + Vite + API^)...
+set "NODE_ENV="
 call npm run start:local
 if errorlevel 1 pause
