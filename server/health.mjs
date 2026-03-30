@@ -142,6 +142,16 @@ function normalizeCategories(payload) {
   return [];
 }
 
+/** URLs de imagens extras (galeria); máx. 30 entradas */
+function normalizeGalleryUrls(payload) {
+  const raw = payload?.gallery_urls;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((u) => (typeof u === "string" ? u.trim() : ""))
+    .filter(Boolean)
+    .slice(0, 30);
+}
+
 app.get(["/health", "/api/health"], (_req, res) => {
   res.json({ status: "ok", service: "agenciadev-api", port: PORT, time: new Date().toISOString() });
 });
@@ -348,6 +358,7 @@ app.post("/api/admin/portfolio-items", authRequired, adminRequired, async (req, 
     featured = false,
   } = req.body;
   const categories = normalizeCategories(req.body);
+  const gallery_urls = normalizeGalleryUrls(req.body);
   if (categories.length === 0) {
     return res.status(400).json({ error: "missing_fields", fields: ["categories"] });
   }
@@ -355,11 +366,11 @@ app.post("/api/admin/portfolio-items", authRequired, adminRequired, async (req, 
     const result = await pool.query(
       `
       INSERT INTO portfolio_items
-      (title, description, categories, image_url, technologies, link, featured)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      (title, description, categories, image_url, gallery_urls, technologies, link, featured)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
       `,
-      [title, description, categories, image_url, technologies, link, featured]
+      [title, description, categories, image_url, gallery_urls, technologies, link, featured]
     );
     return res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -377,6 +388,7 @@ app.put("/api/admin/portfolio-items/:id", authRequired, adminRequired, async (re
     featured = false,
   } = req.body;
   const categories = normalizeCategories(req.body);
+  const gallery_urls = normalizeGalleryUrls(req.body);
   if (categories.length === 0) {
     return res.status(400).json({ error: "missing_fields", fields: ["categories"] });
   }
@@ -384,11 +396,12 @@ app.put("/api/admin/portfolio-items/:id", authRequired, adminRequired, async (re
     const result = await pool.query(
       `
       UPDATE portfolio_items
-      SET title = $2, description = $3, categories = $4, image_url = $5, technologies = $6, link = $7, featured = $8
+      SET title = $2, description = $3, categories = $4, image_url = $5, gallery_urls = $6,
+          technologies = $7, link = $8, featured = $9
       WHERE id = $1
       RETURNING *
       `,
-      [req.params.id, title, description, categories, image_url, technologies, link, featured]
+      [req.params.id, title, description, categories, image_url, gallery_urls, technologies, link, featured]
     );
     return res.json(result.rows[0] ?? null);
   } catch (error) {
@@ -419,6 +432,7 @@ app.post("/api/admin/products", authRequired, adminRequired, async (req, res) =>
     active = true,
   } = req.body;
   const categories = normalizeCategories(req.body);
+  const gallery_urls = normalizeGalleryUrls(req.body);
   if (categories.length === 0) {
     return res.status(400).json({ error: "missing_fields", fields: ["categories"] });
   }
@@ -426,11 +440,11 @@ app.post("/api/admin/products", authRequired, adminRequired, async (req, res) =>
     const result = await pool.query(
       `
       INSERT INTO products
-      (name, description, price, original_price, categories, features, image_url, popular, active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      (name, description, price, original_price, categories, features, image_url, gallery_urls, popular, active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
       `,
-      [name, description, price, original_price, categories, features, image_url, popular, active]
+      [name, description, price, original_price, categories, features, image_url, gallery_urls, popular, active]
     );
     return res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -450,6 +464,7 @@ app.put("/api/admin/products/:id", authRequired, adminRequired, async (req, res)
     active = true,
   } = req.body;
   const categories = normalizeCategories(req.body);
+  const gallery_urls = normalizeGalleryUrls(req.body);
   if (categories.length === 0) {
     return res.status(400).json({ error: "missing_fields", fields: ["categories"] });
   }
@@ -458,11 +473,11 @@ app.put("/api/admin/products/:id", authRequired, adminRequired, async (req, res)
       `
       UPDATE products
       SET name = $2, description = $3, price = $4, original_price = $5, categories = $6,
-          features = $7, image_url = $8, popular = $9, active = $10
+          features = $7, image_url = $8, gallery_urls = $9, popular = $10, active = $11
       WHERE id = $1
       RETURNING *
       `,
-      [req.params.id, name, description, price, original_price, categories, features, image_url, popular, active]
+      [req.params.id, name, description, price, original_price, categories, features, image_url, gallery_urls, popular, active]
     );
     return res.json(result.rows[0] ?? null);
   } catch (error) {

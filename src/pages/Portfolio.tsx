@@ -13,6 +13,7 @@ interface PortfolioItem {
   description: string;
   categories: string[];
   image_url: string | null;
+  gallery_urls?: string[] | null;
   technologies: string[] | null;
   link: string | null;
   featured: boolean | null;
@@ -52,6 +53,9 @@ const Portfolio = () => {
     (project) => activeCategory === "todos" || (project.categories ?? []).includes(activeCategory)
   );
   const stripHtml = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  const galleryForModal = (project: PortfolioItem) =>
+    (project.gallery_urls ?? []).filter((u) => u && u !== project.image_url);
 
   return (
     <div className="min-h-screen bg-background pt-24">
@@ -254,6 +258,25 @@ const Portfolio = () => {
                   className="text-muted-foreground mb-6 text-lg prose prose-invert max-w-none"
                   dangerouslySetInnerHTML={{ __html: selectedProject.description }}
                 />
+
+                {galleryForModal(selectedProject).length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold mb-4 text-foreground">Galeria</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {galleryForModal(selectedProject).map((url) => (
+                        <a
+                          key={url}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block aspect-video rounded-lg overflow-hidden border border-border bg-muted hover:border-primary/50 transition-colors"
+                        >
+                          <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {selectedProject.technologies && selectedProject.technologies.length > 0 && (
                   <div className="mb-6">

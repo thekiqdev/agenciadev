@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { X, Menu } from "lucide-react";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { GalleryUploadList } from "@/components/admin/GalleryUploadList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +49,7 @@ interface PortfolioItem {
   description: string;
   categories: string[];
   image_url: string | null;
+  gallery_urls?: string[] | null;
   technologies: string[];
   link: string | null;
   featured: boolean;
@@ -63,6 +65,7 @@ interface Product {
   categories: string[];
   features: string[];
   image_url: string | null;
+  gallery_urls?: string[] | null;
   popular: boolean;
   active: boolean;
   created_at: string;
@@ -107,6 +110,7 @@ const AdminDashboard = () => {
     description: "",
     categories: [] as string[],
     image_url: "",
+    gallery_urls: [] as string[],
     technologies: "",
     link: "",
     featured: false,
@@ -120,6 +124,7 @@ const AdminDashboard = () => {
     categories: [] as string[],
     features: "",
     image_url: "",
+    gallery_urls: [] as string[],
     popular: false,
     active: true,
   });
@@ -220,12 +225,14 @@ const AdminDashboard = () => {
     }
     
     const techArray = portfolioForm.technologies.split(",").map((t) => t.trim()).filter(Boolean);
-    
+    const galleryUrls = portfolioForm.gallery_urls.map((u) => u.trim()).filter(Boolean);
+
     const data = {
       title: portfolioForm.title,
       description: portfolioForm.description,
       categories: portfolioForm.categories,
       image_url: portfolioForm.image_url || null,
+      gallery_urls: galleryUrls,
       technologies: techArray,
       link: portfolioForm.link || null,
       featured: portfolioForm.featured,
@@ -262,6 +269,7 @@ const AdminDashboard = () => {
       description: "",
       categories: [],
       image_url: "",
+      gallery_urls: [],
       technologies: "",
       link: "",
       featured: false,
@@ -276,6 +284,7 @@ const AdminDashboard = () => {
       description: item.description,
       categories: item.categories ?? [],
       image_url: item.image_url || "",
+      gallery_urls: [...(item.gallery_urls ?? [])],
       technologies: item.technologies.join(", "),
       link: item.link || "",
       featured: item.featured,
@@ -290,6 +299,7 @@ const AdminDashboard = () => {
       description: "",
       categories: [],
       image_url: "",
+      gallery_urls: [],
       technologies: "",
       link: "",
       featured: false,
@@ -305,7 +315,8 @@ const AdminDashboard = () => {
     }
     
     const featuresArray = productForm.features.split(",").map((f) => f.trim()).filter(Boolean);
-    
+    const productGalleryUrls = productForm.gallery_urls.map((u) => u.trim()).filter(Boolean);
+
     const data = {
       name: productForm.name,
       description: productForm.description,
@@ -314,6 +325,7 @@ const AdminDashboard = () => {
       categories: productForm.categories,
       features: featuresArray,
       image_url: productForm.image_url || null,
+      gallery_urls: productGalleryUrls,
       popular: productForm.popular,
       active: productForm.active,
     };
@@ -352,6 +364,7 @@ const AdminDashboard = () => {
       categories: [],
       features: "",
       image_url: "",
+      gallery_urls: [],
       popular: false,
       active: true,
     });
@@ -368,6 +381,7 @@ const AdminDashboard = () => {
       categories: product.categories ?? [],
       features: product.features.join(", "),
       image_url: product.image_url || "",
+      gallery_urls: [...(product.gallery_urls ?? [])],
       popular: product.popular,
       active: product.active,
     });
@@ -384,6 +398,7 @@ const AdminDashboard = () => {
       categories: [],
       features: "",
       image_url: "",
+      gallery_urls: [],
       popular: false,
       active: true,
     });
@@ -664,6 +679,16 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>Galeria</Label>
+                  <GalleryUploadList
+                    value={portfolioForm.gallery_urls}
+                    onChange={(gallery_urls) => setPortfolioForm({ ...portfolioForm, gallery_urls })}
+                    bucket="product-images"
+                    folder="portfolio"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="technologies">Tecnologias (separadas por vírgula)</Label>
                   <Input
                     id="technologies"
@@ -813,6 +838,16 @@ const AdminDashboard = () => {
                   <ImageUpload
                     value={productForm.image_url}
                     onChange={(url) => setProductForm({ ...productForm, image_url: url })}
+                    bucket="product-images"
+                    folder="products"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Galeria</Label>
+                  <GalleryUploadList
+                    value={productForm.gallery_urls}
+                    onChange={(gallery_urls) => setProductForm({ ...productForm, gallery_urls })}
                     bucket="product-images"
                     folder="products"
                   />
