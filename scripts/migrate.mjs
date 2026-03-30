@@ -22,7 +22,7 @@ function loadEnvFromDotenv() {
   const envPath = path.join(projectRoot, ".env");
   if (!fs.existsSync(envPath)) return;
   const content = fs.readFileSync(envPath, "utf8");
-  for (const line of content.split(/\n")) {
+  for (const line of content.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
     const eq = trimmed.indexOf("=");
