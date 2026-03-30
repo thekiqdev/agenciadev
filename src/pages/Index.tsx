@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, Code2, Layers, Cloud, Globe, Wrench, ChevronRight } from "lucide-react";
@@ -5,6 +6,8 @@ import { GlitchText } from "@/components/GlitchText";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import { ParticleBackground } from "@/components/ParticleBackground";
+import { Skeleton } from "@/components/ui/skeleton";
+import { apiFetch } from "@/integrations/api/client";
 
 const services = [
   {
@@ -39,26 +42,14 @@ const services = [
   },
 ];
 
-const portfolioHighlights = [
-  {
-    title: "Plataforma E-commerce",
-    category: "Plataforma",
-    image: "https://images.unsplash.com/photo-1661956602116-aa6865609028?w=600&h=400&fit=crop",
-    tech: ["React", "Node.js", "PostgreSQL"],
-  },
-  {
-    title: "Sistema de Gestão",
-    category: "Sistema",
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=400&fit=crop",
-    tech: ["TypeScript", "AWS", "Docker"],
-  },
-  {
-    title: "App SaaS Analytics",
-    category: "SaaS",
-    image: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=400&fit=crop",
-    tech: ["Next.js", "Prisma", "Stripe"],
-  },
-];
+interface PortfolioHighlightItem {
+  id: string;
+  title: string;
+  categories: string[];
+  image_url: string | null;
+  technologies: string[] | null;
+  featured: boolean | null;
+}
 
 const stats = [
   { value: "50+", label: "Projetos Entregues" },
@@ -68,6 +59,28 @@ const stats = [
 ];
 
 const Index = () => {
+  const [portfolioHighlights, setPortfolioHighlights] = useState<PortfolioHighlightItem[]>([]);
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiFetch<PortfolioHighlightItem[]>("/api/portfolio-items");
+        if (cancelled) return;
+        const featured = (data ?? []).filter((p) => p.featured === true).slice(0, 6);
+        setPortfolioHighlights(featured);
+      } catch {
+        if (!cancelled) setPortfolioHighlights([]);
+      } finally {
+        if (!cancelled) setPortfolioLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <ParticleBackground />
@@ -224,43 +237,80 @@ const Index = () => {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {portfolioHighlights.map((project, index) => (
-              <motion.div
-                key={project.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="group relative overflow-hidden rounded-xl border border-border bg-card"
-              >
-                <div className="aspect-video overflow-hidden">
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <div className="p-6">
-                  <span className="text-xs font-medium text-primary uppercase tracking-wider">
-                    {project.category}
-                  </span>
-                  <h3 className="text-xl font-bold mt-2 mb-3 text-foreground group-hover:text-primary transition-colors">
-                    {project.title}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {project.tech.map((tech) => (
-                      <span
-                        key={tech}
-                        className="px-2 py-1 text-xs rounded-md bg-muted text-muted-foreground"
-                      >
-                        {tech}
-                      </span>
-                    ))}
+            {portfolioLoading ? (
+              [1, 2, 3].map((i) => (
+                <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
+                  <Skeleton className="aspect-video w-full rounded-none" />
+                  <div className="p-6 space-y-3">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-6 w-4/5" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-6 w-14" />
+                      <Skeleton className="h-6 w-14" />
+                    </div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
+              ))
+            ) : portfolioHighlights.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                <p className="mb-4">Nenhum projeto em destaque no momento. Marque itens como destaque no admin ou explore o portfólio completo.</p>
+                <Link
+                  to="/portfolio"
+                  className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
+                >
+                  Ver portfólio
+                  <ArrowRight size={18} />
+                </Link>
+              </div>
+            ) : (
+              portfolioHighlights.map((project, index) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Link
+                    to="/portfolio"
+                    className="group block relative overflow-hidden rounded-xl border border-border bg-card hover:border-primary/40 transition-colors"
+                  >
+                    <div className="aspect-video overflow-hidden">
+                      {project.image_url ? (
+                        <img
+                          src={project.image_url}
+                          alt={project.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-sm">
+                          Sem imagem
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </div>
+                    <div className="p-6">
+                      <span className="text-xs font-medium text-primary uppercase tracking-wider">
+                        {(project.categories ?? []).join(", ") || "Portfólio"}
+                      </span>
+                      <h3 className="text-xl font-bold mt-2 mb-3 text-foreground group-hover:text-primary transition-colors">
+                        {project.title}
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {(project.technologies ?? []).slice(0, 6).map((tech) => (
+                          <span
+                            key={tech}
+                            className="px-2 py-1 text-xs rounded-md bg-muted text-muted-foreground"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))
+            )}
           </div>
 
           <motion.div

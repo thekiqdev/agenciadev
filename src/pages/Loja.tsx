@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/integrations/api/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { GalleryLightbox, orderedGalleryUrls } from "@/components/GalleryLightbox";
 
 import heroBanner from "@/assets/store-hero-banner.jpg";
 
@@ -43,6 +44,7 @@ export default function Loja() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [galleryLightbox, setGalleryLightbox] = useState<{ urls: string[]; index: number } | null>(null);
   const { settings } = useSiteSettings();
 
   useEffect(() => {
@@ -262,14 +264,18 @@ export default function Loja() {
                   )}
                   
                   {/* Product Image */}
-                  <div className="relative h-48 overflow-hidden">
+                  <button
+                    type="button"
+                    className="relative h-48 w-full overflow-hidden cursor-zoom-in border-0 bg-transparent p-0 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card rounded-t-xl"
+                    onClick={() => setSelectedProduct(product)}
+                  >
                     <img 
                       src={product.image_url || "/placeholder.svg"} 
                       alt={product.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
-                    <div className="absolute bottom-4 left-4">
+                    <div className="absolute bottom-4 left-4 pointer-events-none">
                       <Badge variant="outline" className="bg-card/80 backdrop-blur-sm text-xs">
                         <CategoryIcon className="w-3 h-3 mr-1" />
                         {(product.categories ?? [])
@@ -277,7 +283,7 @@ export default function Loja() {
                           .join(", ")}
                       </Badge>
                     </div>
-                  </div>
+                  </button>
                   
                   <CardHeader className="pb-4">
                     <CardTitle className="text-xl group-hover:text-primary transition-colors">
@@ -345,7 +351,10 @@ export default function Loja() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedProduct(null)}
+              onClick={() => {
+                setGalleryLightbox(null);
+                setSelectedProduct(null);
+              }}
               className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
             >
               <motion.div
@@ -357,11 +366,21 @@ export default function Loja() {
               >
                 <div className="relative">
                   {selectedProduct.image_url ? (
-                    <img
-                      src={selectedProduct.image_url}
-                      alt={selectedProduct.name}
-                      className="w-full h-56 object-cover rounded-t-2xl"
-                    />
+                    <button
+                      type="button"
+                      className="block w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-2xl"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const urls = orderedGalleryUrls(selectedProduct.image_url, selectedProduct.gallery_urls);
+                        if (urls.length) setGalleryLightbox({ urls, index: 0 });
+                      }}
+                    >
+                      <img
+                        src={selectedProduct.image_url}
+                        alt={selectedProduct.name}
+                        className="w-full h-56 object-cover rounded-t-2xl"
+                      />
+                    </button>
                   ) : (
                     <div className="w-full h-56 bg-muted flex items-center justify-center rounded-t-2xl">
                       <Package className="w-16 h-16 text-muted-foreground" />
@@ -369,7 +388,10 @@ export default function Loja() {
                   )}
                   <button
                     type="button"
-                    onClick={() => setSelectedProduct(null)}
+                    onClick={() => {
+                      setGalleryLightbox(null);
+                      setSelectedProduct(null);
+                    }}
                     className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:text-primary transition-colors"
                   >
                     <X size={20} />
@@ -399,17 +421,23 @@ export default function Loja() {
                     <div>
                       <h3 className="text-lg font-semibold mb-3 text-foreground">Galeria</h3>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {galleryForProduct(selectedProduct).map((url) => (
-                          <a
-                            key={url}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block aspect-video rounded-lg overflow-hidden border border-border bg-muted hover:border-primary/50 transition-colors"
-                          >
-                            <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                          </a>
-                        ))}
+                        {galleryForProduct(selectedProduct).map((url) => {
+                          const urls = orderedGalleryUrls(selectedProduct.image_url, selectedProduct.gallery_urls);
+                          const idx = Math.max(0, urls.indexOf(url));
+                          return (
+                            <button
+                              key={url}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setGalleryLightbox({ urls, index: idx });
+                              }}
+                              className="block aspect-video rounded-lg overflow-hidden border border-border bg-muted hover:border-primary/50 transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            >
+                              <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -434,6 +462,16 @@ export default function Loja() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <GalleryLightbox
+          open={galleryLightbox !== null}
+          onOpenChange={(open) => {
+            if (!open) setGalleryLightbox(null);
+          }}
+          images={galleryLightbox?.urls ?? []}
+          initialIndex={galleryLightbox?.index ?? 0}
+          title={selectedProduct?.name ?? "Galeria"}
+        />
 
         {/* CTA Section */}
         <motion.div

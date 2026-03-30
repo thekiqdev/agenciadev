@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ExternalLink, X, FolderOpen } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/integrations/api/client";
+import { GalleryLightbox, orderedGalleryUrls } from "@/components/GalleryLightbox";
 
 type Category = "todos" | "sistemas" | "plataformas" | "saas" | "sites";
 
@@ -31,6 +32,7 @@ const categories = [
 const Portfolio = () => {
   const [activeCategory, setActiveCategory] = useState<Category>("todos");
   const [selectedProject, setSelectedProject] = useState<PortfolioItem | null>(null);
+  const [galleryLightbox, setGalleryLightbox] = useState<{ urls: string[]; index: number } | null>(null);
   const [projects, setProjects] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -210,7 +212,10 @@ const Portfolio = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSelectedProject(null)}
+            onClick={() => {
+              setGalleryLightbox(null);
+              setSelectedProject(null);
+            }}
             className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
           >
             <motion.div
@@ -222,18 +227,32 @@ const Portfolio = () => {
             >
               <div className="relative">
                 {selectedProject.image_url ? (
-                  <img
-                    src={selectedProject.image_url}
-                    alt={selectedProject.title}
-                    className="w-full h-64 object-cover rounded-t-2xl"
-                  />
+                  <button
+                    type="button"
+                    className="block w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-t-2xl"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const urls = orderedGalleryUrls(selectedProject.image_url, selectedProject.gallery_urls);
+                      if (urls.length) setGalleryLightbox({ urls, index: 0 });
+                    }}
+                  >
+                    <img
+                      src={selectedProject.image_url}
+                      alt={selectedProject.title}
+                      className="w-full h-64 object-cover rounded-t-2xl"
+                    />
+                  </button>
                 ) : (
                   <div className="w-full h-64 bg-muted flex items-center justify-center rounded-t-2xl">
                     <FolderOpen className="w-16 h-16 text-muted-foreground" />
                   </div>
                 )}
                 <button
-                  onClick={() => setSelectedProject(null)}
+                  type="button"
+                  onClick={() => {
+                    setGalleryLightbox(null);
+                    setSelectedProject(null);
+                  }}
                   className="absolute top-4 right-4 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:text-primary transition-colors"
                 >
                   <X size={20} />
@@ -263,17 +282,23 @@ const Portfolio = () => {
                   <div className="mb-8">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Galeria</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {galleryForModal(selectedProject).map((url) => (
-                        <a
-                          key={url}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block aspect-video rounded-lg overflow-hidden border border-border bg-muted hover:border-primary/50 transition-colors"
-                        >
-                          <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        </a>
-                      ))}
+                      {galleryForModal(selectedProject).map((url) => {
+                        const urls = orderedGalleryUrls(selectedProject.image_url, selectedProject.gallery_urls);
+                        const idx = Math.max(0, urls.indexOf(url));
+                        return (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setGalleryLightbox({ urls, index: idx });
+                            }}
+                            className="block aspect-video rounded-lg overflow-hidden border border-border bg-muted hover:border-primary/50 transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          >
+                            <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -312,6 +337,16 @@ const Portfolio = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <GalleryLightbox
+        open={galleryLightbox !== null}
+        onOpenChange={(open) => {
+          if (!open) setGalleryLightbox(null);
+        }}
+        images={galleryLightbox?.urls ?? []}
+        initialIndex={galleryLightbox?.index ?? 0}
+        title={selectedProject?.title ?? "Galeria"}
+      />
 
       {/* CTA Section */}
       <section className="py-20">
