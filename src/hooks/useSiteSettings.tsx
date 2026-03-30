@@ -1,16 +1,22 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/integrations/api/client";
+import type { CategoryEntry } from "@/types/category";
+import { DEFAULT_PORTFOLIO_CATEGORIES, DEFAULT_PRODUCT_CATEGORIES } from "@/types/category";
 
 export interface SiteSettings {
   site_name: string;
   seo_description: string;
   whatsapp_number: string;
+  portfolio_categories: CategoryEntry[];
+  product_categories: CategoryEntry[];
 }
 
 const DEFAULT_SETTINGS: SiteSettings = {
   site_name: "Agencia Dev",
   seo_description: "Transformando ideias em soluções digitais inovadoras.",
   whatsapp_number: "5511999999999",
+  portfolio_categories: DEFAULT_PORTFOLIO_CATEGORIES,
+  product_categories: DEFAULT_PRODUCT_CATEGORIES,
 };
 
 interface SiteSettingsContextType {
@@ -40,9 +46,15 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const refresh = async () => {
     try {
       const data = await apiFetch<Partial<SiteSettings>>("/api/settings");
-      const merged = {
+      const merged: SiteSettings = {
         ...DEFAULT_SETTINGS,
         ...data,
+        portfolio_categories: data.portfolio_categories?.length
+          ? data.portfolio_categories
+          : DEFAULT_SETTINGS.portfolio_categories,
+        product_categories: data.product_categories?.length
+          ? data.product_categories
+          : DEFAULT_SETTINGS.product_categories,
       };
       setSettings(merged);
       applyMeta(merged);

@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { CategoryEntry } from "@/types/category";
 
 interface PortfolioItem {
   id: string;
@@ -29,9 +30,21 @@ interface PortfolioSectionProps {
   onDelete: (id: string) => void;
   onNew: () => void;
   formatDate: (date: string) => string;
+  portfolioCategories: CategoryEntry[];
 }
 
-export function PortfolioSection({ items, onEdit, onDelete, onNew, formatDate }: PortfolioSectionProps) {
+function labelForSlug(slug: string, list: CategoryEntry[]) {
+  return list.find((c) => c.slug === slug)?.label ?? slug;
+}
+
+export function PortfolioSection({
+  items,
+  onEdit,
+  onDelete,
+  onNew,
+  formatDate,
+  portfolioCategories,
+}: PortfolioSectionProps) {
   const stripHtml = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   return (
     <motion.div
@@ -99,8 +112,8 @@ export function PortfolioSection({ items, onEdit, onDelete, onNew, formatDate }:
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {(item.categories ?? []).map((category) => (
-                        <Badge key={category} variant="outline" className="capitalize">
-                          {category}
+                        <Badge key={category} variant="outline">
+                          {labelForSlug(category, portfolioCategories)}
                         </Badge>
                       ))}
                     </div>

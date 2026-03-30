@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { CategoryEntry } from "@/types/category";
 
 interface Product {
   id: string;
@@ -32,6 +33,11 @@ interface ProductsSectionProps {
   onDelete: (id: string) => void;
   onNew: () => void;
   formatDate: (date: string) => string;
+  productCategories: CategoryEntry[];
+}
+
+function labelForSlug(slug: string, list: CategoryEntry[]) {
+  return list.find((c) => c.slug === slug)?.label ?? slug;
 }
 
 const categoryIcons = {
@@ -40,13 +46,14 @@ const categoryIcons = {
   template: Code
 };
 
-const categoryLabels = {
-  license: "Licença",
-  system: "Sistema",
-  template: "Template"
-};
-
-export function ProductsSection({ products, onEdit, onDelete, onNew, formatDate }: ProductsSectionProps) {
+export function ProductsSection({
+  products,
+  onEdit,
+  onDelete,
+  onNew,
+  formatDate,
+  productCategories,
+}: ProductsSectionProps) {
   const stripHtml = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -125,7 +132,7 @@ export function ProductsSection({ products, onEdit, onDelete, onNew, formatDate 
                         {(product.categories ?? []).map((category) => (
                           <Badge key={category} variant="outline" className="gap-1">
                             <CategoryIcon className="w-3 h-3" />
-                            {categoryLabels[category as keyof typeof categoryLabels] || category}
+                            {labelForSlug(category, productCategories)}
                           </Badge>
                         ))}
                       </div>

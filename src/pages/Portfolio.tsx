@@ -6,19 +6,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/integrations/api/client";
 import { PortfolioItemModal } from "@/components/PortfolioItemModal";
 import type { PortfolioItem } from "@/types/portfolio";
-
-type Category = "todos" | "sistemas" | "plataformas" | "saas" | "sites";
-
-const categories = [
-  { id: "todos", label: "Todos" },
-  { id: "sistemas", label: "Sistemas" },
-  { id: "plataformas", label: "Plataformas" },
-  { id: "saas", label: "SaaS" },
-  { id: "sites", label: "Sites" },
-];
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { DEFAULT_PORTFOLIO_CATEGORIES } from "@/types/category";
 
 const Portfolio = () => {
-  const [activeCategory, setActiveCategory] = useState<Category>("todos");
+  const { settings } = useSiteSettings();
+  const portfolioCats = settings.portfolio_categories?.length
+    ? settings.portfolio_categories
+    : DEFAULT_PORTFOLIO_CATEGORIES;
+  const filterTabs = [{ id: "todos", label: "Todos" }, ...portfolioCats.map((c) => ({ id: c.slug, label: c.label }))];
+
+  const [activeCategory, setActiveCategory] = useState<string>("todos");
   const [selectedProject, setSelectedProject] = useState<PortfolioItem | null>(null);
   const [projects, setProjects] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,10 +68,11 @@ const Portfolio = () => {
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap justify-center gap-3">
-            {categories.map((category) => (
+            {filterTabs.map((category) => (
               <button
                 key={category.id}
-                onClick={() => setActiveCategory(category.id as Category)}
+                type="button"
+                onClick={() => setActiveCategory(category.id)}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                   activeCategory === category.id
                     ? "bg-primary text-primary-foreground"

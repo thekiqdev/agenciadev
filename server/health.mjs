@@ -152,6 +152,85 @@ function normalizeGalleryUrls(payload) {
     .slice(0, 30);
 }
 
+const DEFAULT_PORTFOLIO_CATEGORIES = [
+  { slug: "sistemas", label: "Sistemas" },
+  { slug: "plataformas", label: "Plataformas" },
+  { slug: "saas", label: "SaaS" },
+  { slug: "sites", label: "Sites" },
+];
+
+const DEFAULT_PRODUCT_CATEGORIES = [
+  { slug: "system", label: "Sistema" },
+  { slug: "license", label: "Licença" },
+  { slug: "template", label: "Template" },
+];
+
+function normalizeCategoryCatalog(list) {
+  if (!Array.isArray(list)) return null;
+  const out = [];
+  const seen = new Set();
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    let slug = String(item.slug ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "");
+    const label = String(item.label ?? "").trim();
+    if (!slug || !label) continue;
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+    out.push({ slug, label });
+  }
+  return out.length ? out : null;
+}
+
+function mapCategoryJsonb(value) {
+  if (value == null) return null;
+  let raw = value;
+  if (typeof value === "string") {
+    try {
+      raw = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  if (!Array.isArray(raw)) return null;
+  return normalizeCategoryCatalog(raw);
+}
+
+function mapSiteSettingsRow(row) {
+  if (!row) {
+    return {
+      site_name: "Agencia Dev",
+      seo_description: "",
+      whatsapp_number: "",
+      portfolio_categories: DEFAULT_PORTFOLIO_CATEGORIES,
+      product_categories: DEFAULT_PRODUCT_CATEGORIES,
+      updated_at: null,
+    };
+  }
+  let pc;
+  let pr;
+  try {
+    pc = mapCategoryJsonb(row.portfolio_categories) ?? DEFAULT_PORTFOLIO_CATEGORIES;
+  } catch {
+    pc = DEFAULT_PORTFOLIO_CATEGORIES;
+  }
+  try {
+    pr = mapCategoryJsonb(row.product_categories) ?? DEFAULT_PRODUCT_CATEGORIES;
+  } catch {
+    pr = DEFAULT_PRODUCT_CATEGORIES;
+  }
+  return {
+    site_name: row.site_name,
+    seo_description: row.seo_description,
+    whatsapp_number: row.whatsapp_number,
+    portfolio_categories: pc,
+    product_categories: pr,
+    updated_at: row.updated_at,
+  };
+}
+
 app.get(["/health", "/api/health"], (_req, res) => {
   res.json({ status: "ok", service: "agenciadev-api", port: PORT, time: new Date().toISOString() });
 });
@@ -293,16 +372,10 @@ app.get("/api/products", async (_req, res) => {
 app.get("/api/settings", async (_req, res) => {
   try {
     const result = await pool.query(
-      "SELECT site_name, seo_description, whatsapp_number, updated_at FROM site_settings WHERE id = 1 LIMIT 1"
+      `SELECT site_name, seo_description, whatsapp_number, portfolio_categories, product_categories, updated_at
+       FROM site_settings WHERE id = 1 LIMIT 1`
     );
-    return res.json(
-      result.rows[0] ?? {
-        site_name: "Agencia Dev",
-        seo_description: "",
-        whatsapp_number: "",
-        updated_at: null,
-      }
-    );
+    return res.json(mapSiteSettingsRow(result.rows[0]));
   } catch (error) {
     return res.status(500).json({ error: "settings_failed", detail: error.message });
   }
@@ -497,18 +570,36 @@ app.delete("/api/admin/products/:id", authRequired, adminRequired, async (req, r
 app.get("/api/admin/settings", authRequired, adminRequired, async (_req, res) => {
   try {
     const result = await pool.query(
-      "SELECT site_name, seo_description, whatsapp_number, updated_at FROM site_settings WHERE id = 1 LIMIT 1"
+      `SELECT site_name, seo_description, whatsapp_number, portfolio_categories, product_categories, updated_at
+       FROM site_settings WHERE id = 1 LIMIT 1`
     );
-    return res.json(
-      result.rows[0] ?? {
-        site_name: "Agencia Dev",
-        seo_description: "",
-        whatsapp_number: "",
-        updated_at: null,
-      }
-    );
+    return res.json(mapSiteSettingsRow(result.rows[0]));
   } catch (error) {
     return res.status(500).json({ error: "admin_settings_failed", detail: error.message });
+  }
+});
+
+app.put("/api/admin/settings/categories", authRequired, adminRequired, async (req, res) => {
+  const { portfolio_categories, product_categories } = req.body ?? {};
+  const pc = normalizeCategoryCatalog(portfolio_categories);
+  const pr = normalizeCategoryCatalog(product_categories);
+  if (!pc || !pr) {
+    return res.status(400).json({
+      error: "invalid_categories",
+      detail: "Informe ao menos uma categoria válida (identificador e nome) em cada lista.",
+    });
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE site_settings
+       SET portfolio_categories = $1::jsonb, product_categories = $2::jsonb
+       WHERE id = 1
+       RETURNING site_name, seo_description, whatsapp_number, portfolio_categories, product_categories, updated_at`,
+      [JSON.stringify(pc), JSON.stringify(pr)]
+    );
+    return res.json(mapSiteSettingsRow(result.rows[0]));
+  } catch (error) {
+    return res.status(500).json({ error: "update_categories_failed", detail: error.message });
   }
 });
 
@@ -531,11 +622,11 @@ app.put("/api/admin/settings", authRequired, adminRequired, async (req, res) => 
         site_name = EXCLUDED.site_name,
         seo_description = EXCLUDED.seo_description,
         whatsapp_number = EXCLUDED.whatsapp_number
-      RETURNING site_name, seo_description, whatsapp_number, updated_at
+      RETURNING site_name, seo_description, whatsapp_number, portfolio_categories, product_categories, updated_at
       `,
       [site_name, seo_description, whatsapp_number]
     );
-    return res.json(result.rows[0]);
+    return res.json(mapSiteSettingsRow(result.rows[0]));
   } catch (error) {
     return res.status(500).json({ error: "update_settings_failed", detail: error.message });
   }

@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/integrations/api/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { GalleryLightbox, orderedGalleryUrls } from "@/components/GalleryLightbox";
+import { DEFAULT_PRODUCT_CATEGORIES } from "@/types/category";
 
 import heroBanner from "@/assets/store-hero-banner.jpg";
 
@@ -33,12 +34,6 @@ const categoryIcons: Record<string, any> = {
   template: Code
 };
 
-const categoryLabels = {
-  license: "Licença",
-  system: "Sistema",
-  template: "Template"
-};
-
 export default function Loja() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [products, setProducts] = useState<Product[]>([]);
@@ -46,6 +41,11 @@ export default function Loja() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [galleryLightbox, setGalleryLightbox] = useState<{ urls: string[]; index: number } | null>(null);
   const { settings } = useSiteSettings();
+  const productCats = settings.product_categories?.length
+    ? settings.product_categories
+    : DEFAULT_PRODUCT_CATEGORIES;
+
+  const categoryLabel = (slug: string) => productCats.find((c) => c.slug === slug)?.label ?? slug;
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -59,6 +59,12 @@ export default function Loja() {
     };
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (activeCategory === "all") return;
+    const cats = settings.product_categories?.length ? settings.product_categories : DEFAULT_PRODUCT_CATEGORIES;
+    if (!cats.some((c) => c.slug === activeCategory)) setActiveCategory("all");
+  }, [settings.product_categories, activeCategory]);
 
   const filteredProducts = activeCategory === "all" 
     ? products 
@@ -205,20 +211,23 @@ export default function Loja() {
         />
 
         {/* Category Tabs */}
-        <Tabs defaultValue="all" className="w-full mb-8" onValueChange={setActiveCategory}>
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 bg-card/50 border border-border">
-            <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+        <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full mb-8">
+          <TabsList className="flex h-auto min-h-11 w-full max-w-3xl mx-auto flex-wrap justify-center gap-1 bg-card/50 border border-border p-1">
+            <TabsTrigger
+              value="all"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               Todos
             </TabsTrigger>
-            <TabsTrigger value="system" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Sistemas
-            </TabsTrigger>
-            <TabsTrigger value="license" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Licenças
-            </TabsTrigger>
-            <TabsTrigger value="template" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Templates
-            </TabsTrigger>
+            {productCats.map((c) => (
+              <TabsTrigger
+                key={c.slug}
+                value={c.slug}
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                {c.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </Tabs>
 
@@ -278,9 +287,7 @@ export default function Loja() {
                     <div className="absolute bottom-4 left-4 pointer-events-none">
                       <Badge variant="outline" className="bg-card/80 backdrop-blur-sm text-xs">
                         <CategoryIcon className="w-3 h-3 mr-1" />
-                        {(product.categories ?? [])
-                          .map((category) => categoryLabels[category as keyof typeof categoryLabels] || category)
-                          .join(", ")}
+                        {(product.categories ?? []).map((slug) => categoryLabel(slug)).join(", ")}
                       </Badge>
                     </div>
                   </button>
@@ -406,7 +413,7 @@ export default function Loja() {
                         return (
                           <Badge key={category} variant="outline" className="gap-1">
                             <CategoryIcon className="w-3 h-3" />
-                            {categoryLabels[category as keyof typeof categoryLabels] || category}
+                            {categoryLabel(category)}
                           </Badge>
                         );
                       })}

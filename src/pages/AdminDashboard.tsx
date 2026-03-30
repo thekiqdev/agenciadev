@@ -16,7 +16,9 @@ import { ContactsSection } from "@/components/admin/ContactsSection";
 import { BudgetsSection } from "@/components/admin/BudgetsSection";
 import { PortfolioSection } from "@/components/admin/PortfolioSection";
 import { ProductsSection } from "@/components/admin/ProductsSection";
-import { SettingsSection } from "@/components/admin/SettingsSection";
+import { SettingsSection, type AdminSiteSettings } from "@/components/admin/SettingsSection";
+import type { CategoryEntry } from "@/types/category";
+import { DEFAULT_PORTFOLIO_CATEGORIES, DEFAULT_PRODUCT_CATEGORIES } from "@/types/category";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { useAuth } from "@/hooks/useAuth";
 import { apiFetch } from "@/integrations/api/client";
@@ -71,16 +73,6 @@ interface Product {
   created_at: string;
 }
 
-interface SiteSettings {
-  site_name: string;
-  seo_description: string;
-  whatsapp_number: string;
-  updated_at?: string | null;
-}
-
-const portfolioCategoryOptions = ["sistemas", "plataformas", "saas", "sites"];
-const productCategoryOptions = ["system", "license", "template"];
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
@@ -95,10 +87,12 @@ const AdminDashboard = () => {
   const [editingPortfolio, setEditingPortfolio] = useState<PortfolioItem | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [settings, setSettings] = useState<SiteSettings>({
+  const [settings, setSettings] = useState<AdminSiteSettings>({
     site_name: "Agencia Dev",
     seo_description: "",
     whatsapp_number: "",
+    portfolio_categories: DEFAULT_PORTFOLIO_CATEGORIES,
+    product_categories: DEFAULT_PRODUCT_CATEGORIES,
     updated_at: null,
   });
 
@@ -155,7 +149,7 @@ const AdminDashboard = () => {
       setBudgets(data.budgets || []);
       setPortfolioItems(data.portfolio || []);
       setProducts(data.products || []);
-      const settingsData = await apiFetch<SiteSettings>("/api/admin/settings");
+      const settingsData = await apiFetch<AdminSiteSettings>("/api/admin/settings");
       setSettings(settingsData);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -430,8 +424,8 @@ const AdminDashboard = () => {
     products: products.length,
   };
 
-  const saveSettings = async (nextSettings: SiteSettings) => {
-    const data = await apiFetch<SiteSettings>("/api/admin/settings", {
+  const saveSettings = async (nextSettings: AdminSiteSettings) => {
+    const data = await apiFetch<AdminSiteSettings>("/api/admin/settings", {
       method: "PUT",
       body: JSON.stringify({
         site_name: nextSettings.site_name,
@@ -441,6 +435,15 @@ const AdminDashboard = () => {
     });
     setSettings(data);
     toast.success("Configurações atualizadas com sucesso");
+  };
+
+  const saveCategories = async (portfolio: CategoryEntry[], product: CategoryEntry[]) => {
+    const data = await apiFetch<AdminSiteSettings>("/api/admin/settings/categories", {
+      method: "PUT",
+      body: JSON.stringify({ portfolio_categories: portfolio, product_categories: product }),
+    });
+    setSettings(data);
+    toast.success("Categorias atualizadas com sucesso");
   };
 
   return (
@@ -501,6 +504,7 @@ const AdminDashboard = () => {
                 onDelete={handleDeletePortfolio}
                 onNew={openNewPortfolio}
                 formatDate={formatDate}
+                portfolioCategories={settings.portfolio_categories ?? DEFAULT_PORTFOLIO_CATEGORIES}
               />
             )}
             {activeSection === "products" && (
@@ -510,10 +514,16 @@ const AdminDashboard = () => {
                 onDelete={handleDeleteProduct}
                 onNew={openNewProduct}
                 formatDate={formatDate}
+                productCategories={settings.product_categories ?? DEFAULT_PRODUCT_CATEGORIES}
               />
             )}
             {activeSection === "settings" && (
-              <SettingsSection settings={settings} loading={isLoading} onSave={saveSettings} />
+              <SettingsSection
+                settings={settings}
+                loading={isLoading}
+                onSave={saveSettings}
+                onSaveCategories={saveCategories}
+              />
             )}
           </main>
         </div>
@@ -641,19 +651,22 @@ const AdminDashboard = () => {
                 <div className="space-y-2">
                   <Label>Categorias *</Label>
                   <div className="flex flex-wrap gap-2">
-                    {portfolioCategoryOptions.map((option) => (
-                      <label key={option} className="flex items-center gap-2 text-sm rounded-md border border-border px-3 py-2">
+                    {(settings.portfolio_categories ?? DEFAULT_PORTFOLIO_CATEGORIES).map((option) => (
+                      <label
+                        key={option.slug}
+                        className="flex items-center gap-2 text-sm rounded-md border border-border px-3 py-2"
+                      >
                         <input
                           type="checkbox"
-                          checked={portfolioForm.categories.includes(option)}
+                          checked={portfolioForm.categories.includes(option.slug)}
                           onChange={() =>
                             setPortfolioForm({
                               ...portfolioForm,
-                              categories: toggleSelection(option, portfolioForm.categories),
+                              categories: toggleSelection(option.slug, portfolioForm.categories),
                             })
                           }
                         />
-                        <span className="capitalize">{option}</span>
+                        <span>{option.label}</span>
                       </label>
                     ))}
                   </div>
@@ -777,19 +790,22 @@ const AdminDashboard = () => {
                 <div className="space-y-2">
                   <Label>Categorias *</Label>
                   <div className="flex flex-wrap gap-2">
-                    {productCategoryOptions.map((option) => (
-                      <label key={option} className="flex items-center gap-2 text-sm rounded-md border border-border px-3 py-2">
+                    {(settings.product_categories ?? DEFAULT_PRODUCT_CATEGORIES).map((option) => (
+                      <label
+                        key={option.slug}
+                        className="flex items-center gap-2 text-sm rounded-md border border-border px-3 py-2"
+                      >
                         <input
                           type="checkbox"
-                          checked={productForm.categories.includes(option)}
+                          checked={productForm.categories.includes(option.slug)}
                           onChange={() =>
                             setProductForm({
                               ...productForm,
-                              categories: toggleSelection(option, productForm.categories),
+                              categories: toggleSelection(option.slug, productForm.categories),
                             })
                           }
                         />
-                        <span className="capitalize">{option}</span>
+                        <span>{option.label}</span>
                       </label>
                     ))}
                   </div>
