@@ -8,6 +8,8 @@ import { SectionTitle } from "@/components/SectionTitle";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/integrations/api/client";
+import { PortfolioItemModal } from "@/components/PortfolioItemModal";
+import type { PortfolioItem } from "@/types/portfolio";
 
 const services = [
   {
@@ -42,15 +44,6 @@ const services = [
   },
 ];
 
-interface PortfolioHighlightItem {
-  id: string;
-  title: string;
-  categories: string[];
-  image_url: string | null;
-  technologies: string[] | null;
-  featured: boolean | null;
-}
-
 const stats = [
   { value: "50+", label: "Projetos Entregues" },
   { value: "30+", label: "Clientes Satisfeitos" },
@@ -59,14 +52,15 @@ const stats = [
 ];
 
 const Index = () => {
-  const [portfolioHighlights, setPortfolioHighlights] = useState<PortfolioHighlightItem[]>([]);
+  const [portfolioHighlights, setPortfolioHighlights] = useState<PortfolioItem[]>([]);
   const [portfolioLoading, setPortfolioLoading] = useState(true);
+  const [selectedHighlight, setSelectedHighlight] = useState<PortfolioItem | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await apiFetch<PortfolioHighlightItem[]>("/api/portfolio-items");
+        const data = await apiFetch<PortfolioItem[]>("/api/portfolio-items");
         if (cancelled) return;
         const featured = (data ?? []).filter((p) => p.featured === true).slice(0, 6);
         setPortfolioHighlights(featured);
@@ -271,9 +265,10 @@ const Index = () => {
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Link
-                    to="/portfolio"
-                    className="group block relative overflow-hidden rounded-xl border border-border bg-card hover:border-primary/40 transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHighlight(project)}
+                    className="group block w-full text-left relative overflow-hidden rounded-xl border border-border bg-card hover:border-primary/40 transition-colors"
                   >
                     <div className="aspect-video overflow-hidden">
                       {project.image_url ? (
@@ -307,7 +302,7 @@ const Index = () => {
                         ))}
                       </div>
                     </div>
-                  </Link>
+                  </button>
                 </motion.div>
               ))
             )}
@@ -329,6 +324,8 @@ const Index = () => {
           </motion.div>
         </div>
       </section>
+
+      <PortfolioItemModal project={selectedHighlight} onClose={() => setSelectedHighlight(null)} />
 
       {/* CTA Section */}
       <section className="py-20 relative">
