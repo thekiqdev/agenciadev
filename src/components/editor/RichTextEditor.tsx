@@ -17,7 +17,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
     editorProps: {
       attributes: {
         class:
-          "min-h-[140px] rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground focus:outline-none",
+          "min-h-[140px] rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none prose prose-invert prose-sm max-w-none [&_strong]:font-bold [&_b]:font-bold [&_em]:italic",
       },
     },
     onUpdate: ({ editor: currentEditor }) => {

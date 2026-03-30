@@ -41,16 +41,45 @@ export function ImageUpload({ value, onChange, bucket, folder = "" }: ImageUploa
         credentials: "include",
         body: form,
       });
-      const payload = await response.json();
+
+      const ct = response.headers.get("content-type") ?? "";
+      const isJson = ct.includes("application/json");
+      let payload: { error?: string; url?: string } | null = null;
+      if (isJson) {
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
+      }
+
       if (!response.ok) {
-        throw new ApiError(payload?.error ?? "upload_failed", response.status, payload);
+        if (response.status === 413) {
+          toast.error(
+            "Arquivo grande demais para o proxy (413). Use imagem menor ou redeploy do front após atualizar o Nginx (client_max_body_size).",
+          );
+          return;
+        }
+        const msg =
+          typeof payload?.error === "string"
+            ? payload.error
+            : !isJson
+              ? `Erro ${response.status} do servidor`
+              : "upload_failed";
+        throw new ApiError(msg, response.status, payload);
+      }
+
+      if (!payload?.url) {
+        toast.error("Resposta inválida do servidor");
+        return;
       }
 
       onChange(payload.url);
       toast.success("Imagem enviada com sucesso");
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Erro ao enviar imagem");
+      const msg = error instanceof ApiError ? error.message : "Erro ao enviar imagem";
+      toast.error(msg);
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
