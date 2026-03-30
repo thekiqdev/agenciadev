@@ -1,11 +1,10 @@
-# API Node (Express) — Easypanel
+﻿# API Node (Express) — Easypanel
+# Instala deps do backend a partir de docker/package.api.json para evitar lockfile/contexto inconsistente.
 # node_modules fica em /opt/... (fora do volume). Em runtime liga-se por symlink a /srv/.../node_modules.
 
 FROM node:22-alpine AS deps
 WORKDIR /srv/agenciadev-api
-COPY package.json package-lock.json ./
-# npm ci com lockfile incompleto (ex.: zip do build) pode instalar ~316 pacotes sem express/pg no topo.
-# npm install --omit=dev honra package.json e repõe o que faltar.
+COPY docker/package.api.json ./package.json
 RUN rm -rf node_modules && \
     env -u NODE_ENV npm install --omit=dev --no-audit --no-fund && \
     node -e "require('express'); require('pg');"
