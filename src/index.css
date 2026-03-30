@@ -213,6 +213,7 @@
   .cyber-button {
     @apply relative px-6 py-3 font-bold uppercase tracking-wider overflow-hidden;
     background: linear-gradient(135deg, hsl(var(--neon-cyan)), hsl(var(--neon-purple)));
+    color: hsl(var(--foreground));
     clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
     transition: all 0.3s ease;
   }
@@ -233,11 +234,23 @@
   .cyber-button span {
     position: relative;
     z-index: 1;
+    color: hsl(var(--foreground)) !important;
+    transition: color 0.3s ease;
+  }
+
+  .cyber-button svg {
+    position: relative;
+    z-index: 1;
+    color: hsl(var(--foreground)) !important;
     transition: color 0.3s ease;
   }
 
   .cyber-button:hover span {
-    color: hsl(var(--background));
+    color: hsl(var(--background)) !important;
+  }
+
+  .cyber-button:hover svg {
+    color: hsl(var(--background)) !important;
   }
 
   /* Floating Animation */
