@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import { apiFetch } from "@/integrations/api/client";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 const contactSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
@@ -32,26 +33,8 @@ type ContactFormData = z.infer<typeof contactSchema>;
 type BudgetFormData = z.infer<typeof budgetSchema>;
 const projectTypes = ["Sistema de Gestão", "Plataforma Digital", "Solução SaaS", "Site Institucional", "Landing Page", "E-commerce", "Aplicativo Web", "Manutenção/Suporte", "Outro"];
 const budgetRanges = ["Até R$ 10.000", "R$ 10.000 - R$ 30.000", "R$ 30.000 - R$ 50.000", "R$ 50.000 - R$ 100.000", "Acima de R$ 100.000", "A definir"];
-const contactInfo = [{
-  icon: Mail,
-  title: "E-mail",
-  value: "contato@nexusdev.com.br",
-  link: "mailto:contato@nexusdev.com.br"
-}, {
-  icon: Phone,
-  title: "Telefone",
-  value: "(11) 99999-9999",
-  link: "tel:+5511999999999"
-}, {
-  icon: MapPin,
-  title: "Localização",
-  value: "São Paulo, SP - Brasil"
-}, {
-  icon: Clock,
-  title: "Horário",
-  value: "Seg - Sex: 9h às 18h"
-}];
 const Contato = () => {
+  const { settings } = useSiteSettings();
   const [activeTab, setActiveTab] = useState<"contact" | "budget">("contact");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const contactForm = useForm<ContactFormData>({
@@ -60,6 +43,38 @@ const Contato = () => {
   const budgetForm = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema)
   });
+
+  const contactInfo = useMemo(() => {
+    const email = settings.contact_email?.trim() || "contato@agenciadev.com.br";
+    const phone = settings.contact_phone?.trim() || "(11) 99999-9999";
+    const phoneDigits = phone.replace(/\D/g, "");
+    const location = settings.contact_location?.trim() || "São Paulo, SP - Brasil";
+    const hours = settings.contact_hours?.trim() || "Seg - Sex: 9h às 18h";
+    return [
+      {
+        icon: Mail,
+        title: "E-mail",
+        value: email,
+        link: `mailto:${email}`,
+      },
+      {
+        icon: Phone,
+        title: "Telefone",
+        value: phone,
+        link: phoneDigits ? `tel:+${phoneDigits}` : undefined,
+      },
+      {
+        icon: MapPin,
+        title: "Localização",
+        value: location,
+      },
+      {
+        icon: Clock,
+        title: "Horário",
+        value: hours,
+      },
+    ];
+  }, [settings]);
   const onContactSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {

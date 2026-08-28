@@ -16,6 +16,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import pg from "pg";
+import { isSmtpReady, sendMailWithSettings } from "./mail.mjs";
 
 const { Pool } = pg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -132,6 +133,14 @@ function requireFields(payload, required) {
   return required.filter((k) => !payload?.[k]);
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function normalizeCategories(payload) {
   if (Array.isArray(payload?.categories)) {
     return payload.categories.map((v) => String(v).trim()).filter(Boolean);
@@ -198,15 +207,43 @@ function mapCategoryJsonb(value) {
   return normalizeCategoryCatalog(raw);
 }
 
-function mapSiteSettingsRow(row) {
+const SITE_SETTINGS_PUBLIC_COLS = `
+  site_name, seo_description, whatsapp_number,
+  contact_email, contact_phone, contact_location, contact_hours,
+  portfolio_categories, product_categories, updated_at
+`;
+
+const SITE_SETTINGS_ADMIN_COLS = `
+  ${SITE_SETTINGS_PUBLIC_COLS},
+  smtp_enabled, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, smtp_from, smtp_to
+`;
+
+function mapSiteSettingsRow(row, { includeSmtp = false } = {}) {
   if (!row) {
-    return {
+    const base = {
       site_name: "Agencia Dev",
       seo_description: "",
       whatsapp_number: "",
+      contact_email: "",
+      contact_phone: "",
+      contact_location: "",
+      contact_hours: "",
       portfolio_categories: DEFAULT_PORTFOLIO_CATEGORIES,
       product_categories: DEFAULT_PRODUCT_CATEGORIES,
       updated_at: null,
+    };
+    if (!includeSmtp) return base;
+    return {
+      ...base,
+      smtp_enabled: false,
+      smtp_host: "",
+      smtp_port: 587,
+      smtp_secure: false,
+      smtp_user: "",
+      smtp_pass: "",
+      smtp_pass_configured: false,
+      smtp_from: "",
+      smtp_to: "",
     };
   }
   let pc;
@@ -221,14 +258,50 @@ function mapSiteSettingsRow(row) {
   } catch {
     pr = DEFAULT_PRODUCT_CATEGORIES;
   }
-  return {
-    site_name: row.site_name,
-    seo_description: row.seo_description,
-    whatsapp_number: row.whatsapp_number,
+  const base = {
+    site_name: row.site_name ?? "",
+    seo_description: row.seo_description ?? "",
+    whatsapp_number: row.whatsapp_number ?? "",
+    contact_email: row.contact_email ?? "",
+    contact_phone: row.contact_phone ?? "",
+    contact_location: row.contact_location ?? "",
+    contact_hours: row.contact_hours ?? "",
     portfolio_categories: pc,
     product_categories: pr,
-    updated_at: row.updated_at,
+    updated_at: row.updated_at ?? null,
   };
+  if (!includeSmtp) return base;
+  return {
+    ...base,
+    smtp_enabled: Boolean(row.smtp_enabled),
+    smtp_host: row.smtp_host ?? "",
+    smtp_port: Number(row.smtp_port) || 587,
+    smtp_secure: Boolean(row.smtp_secure),
+    smtp_user: row.smtp_user ?? "",
+    smtp_pass: "",
+    smtp_pass_configured: Boolean(row.smtp_pass),
+    smtp_from: row.smtp_from ?? "",
+    smtp_to: row.smtp_to ?? "",
+  };
+}
+
+async function loadSettingsForMail() {
+  const result = await pool.query(
+    `SELECT site_name, contact_email, smtp_enabled, smtp_host, smtp_port, smtp_secure,
+            smtp_user, smtp_pass, smtp_from, smtp_to
+     FROM site_settings WHERE id = 1 LIMIT 1`
+  );
+  return result.rows[0] ?? null;
+}
+
+async function notifyByEmail(subject, text, html, replyTo) {
+  try {
+    const settings = await loadSettingsForMail();
+    if (!isSmtpReady(settings)) return;
+    await sendMailWithSettings(settings, { subject, text, html, replyTo });
+  } catch (error) {
+    console.error("[api] Falha ao enviar e-mail de notificacao:", error.message);
+  }
 }
 
 app.get(["/health", "/api/health"], (_req, res) => {
@@ -311,6 +384,27 @@ app.post("/api/contact-submissions", async (req, res) => {
       `,
       [name, email, phone, message]
     );
+
+    const text = [
+      "Novo contato pelo site",
+      "",
+      `Nome: ${name}`,
+      `E-mail: ${email}`,
+      `Telefone: ${phone || "—"}`,
+      "",
+      "Mensagem:",
+      message,
+    ].join("\n");
+    const html = `
+      <h2>Novo contato pelo site</h2>
+      <p><strong>Nome:</strong> ${escapeHtml(name)}</p>
+      <p><strong>E-mail:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Telefone:</strong> ${escapeHtml(phone || "—")}</p>
+      <p><strong>Mensagem:</strong></p>
+      <p>${escapeHtml(message).replace(/\n/g, "<br/>")}</p>
+    `;
+    await notifyByEmail(`Contato: ${name}`, text, html, email);
+
     return res.status(201).json({ ok: true });
   } catch (error) {
     return res.status(500).json({ error: "create_contact_failed", detail: error.message });
@@ -341,6 +435,35 @@ app.post("/api/budget-submissions", async (req, res) => {
       `,
       [name, email, phone, company, project_type, deadline, budget_range, description]
     );
+
+    const text = [
+      "Nova solicitação de orçamento",
+      "",
+      `Nome: ${name}`,
+      `E-mail: ${email}`,
+      `Telefone: ${phone || "—"}`,
+      `Empresa: ${company || "—"}`,
+      `Tipo de projeto: ${project_type}`,
+      `Investimento: ${budget_range || "—"}`,
+      `Prazo: ${deadline || "—"}`,
+      "",
+      "Descrição:",
+      description,
+    ].join("\n");
+    const html = `
+      <h2>Nova solicitação de orçamento</h2>
+      <p><strong>Nome:</strong> ${escapeHtml(name)}</p>
+      <p><strong>E-mail:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Telefone:</strong> ${escapeHtml(phone || "—")}</p>
+      <p><strong>Empresa:</strong> ${escapeHtml(company || "—")}</p>
+      <p><strong>Tipo:</strong> ${escapeHtml(project_type)}</p>
+      <p><strong>Investimento:</strong> ${escapeHtml(budget_range || "—")}</p>
+      <p><strong>Prazo:</strong> ${escapeHtml(deadline || "—")}</p>
+      <p><strong>Descrição:</strong></p>
+      <p>${escapeHtml(description).replace(/\n/g, "<br/>")}</p>
+    `;
+    await notifyByEmail(`Orçamento: ${name} — ${project_type}`, text, html, email);
+
     return res.status(201).json({ ok: true });
   } catch (error) {
     return res.status(500).json({ error: "create_budget_failed", detail: error.message });
@@ -372,10 +495,10 @@ app.get("/api/products", async (_req, res) => {
 app.get("/api/settings", async (_req, res) => {
   try {
     const result = await pool.query(
-      `SELECT site_name, seo_description, whatsapp_number, portfolio_categories, product_categories, updated_at
+      `SELECT ${SITE_SETTINGS_PUBLIC_COLS}
        FROM site_settings WHERE id = 1 LIMIT 1`
     );
-    return res.json(mapSiteSettingsRow(result.rows[0]));
+    return res.json(mapSiteSettingsRow(result.rows[0], { includeSmtp: false }));
   } catch (error) {
     return res.status(500).json({ error: "settings_failed", detail: error.message });
   }
@@ -570,10 +693,10 @@ app.delete("/api/admin/products/:id", authRequired, adminRequired, async (req, r
 app.get("/api/admin/settings", authRequired, adminRequired, async (_req, res) => {
   try {
     const result = await pool.query(
-      `SELECT site_name, seo_description, whatsapp_number, portfolio_categories, product_categories, updated_at
+      `SELECT ${SITE_SETTINGS_ADMIN_COLS}
        FROM site_settings WHERE id = 1 LIMIT 1`
     );
-    return res.json(mapSiteSettingsRow(result.rows[0]));
+    return res.json(mapSiteSettingsRow(result.rows[0], { includeSmtp: true }));
   } catch (error) {
     return res.status(500).json({ error: "admin_settings_failed", detail: error.message });
   }
@@ -594,17 +717,34 @@ app.put("/api/admin/settings/categories", authRequired, adminRequired, async (re
       `UPDATE site_settings
        SET portfolio_categories = $1::jsonb, product_categories = $2::jsonb
        WHERE id = 1
-       RETURNING site_name, seo_description, whatsapp_number, portfolio_categories, product_categories, updated_at`,
+       RETURNING ${SITE_SETTINGS_ADMIN_COLS}`,
       [JSON.stringify(pc), JSON.stringify(pr)]
     );
-    return res.json(mapSiteSettingsRow(result.rows[0]));
+    return res.json(mapSiteSettingsRow(result.rows[0], { includeSmtp: true }));
   } catch (error) {
     return res.status(500).json({ error: "update_categories_failed", detail: error.message });
   }
 });
 
 app.put("/api/admin/settings", authRequired, adminRequired, async (req, res) => {
-  const { site_name, seo_description, whatsapp_number } = req.body ?? {};
+  const {
+    site_name,
+    seo_description,
+    whatsapp_number,
+    contact_email = "",
+    contact_phone = "",
+    contact_location = "",
+    contact_hours = "",
+    smtp_enabled = false,
+    smtp_host = "",
+    smtp_port = 587,
+    smtp_secure = false,
+    smtp_user = "",
+    smtp_pass,
+    smtp_from = "",
+    smtp_to = "",
+  } = req.body ?? {};
+
   if (!site_name || !seo_description || !whatsapp_number) {
     return res.status(400).json({
       error: "missing_fields",
@@ -612,21 +752,61 @@ app.put("/api/admin/settings", authRequired, adminRequired, async (req, res) => 
     });
   }
 
+  const portNum = Number(smtp_port);
+  const resolvedPort = Number.isFinite(portNum) && portNum > 0 ? portNum : 587;
+  const keepPass = smtp_pass === undefined || smtp_pass === null || String(smtp_pass).length === 0;
+
   try {
     const result = await pool.query(
       `
-      INSERT INTO site_settings (id, site_name, seo_description, whatsapp_number)
-      VALUES (1, $1, $2, $3)
+      INSERT INTO site_settings (
+        id, site_name, seo_description, whatsapp_number,
+        contact_email, contact_phone, contact_location, contact_hours,
+        smtp_enabled, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, smtp_from, smtp_to
+      )
+      VALUES (
+        1, $1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, $11, $12, COALESCE($13, ''), $14, $15
+      )
       ON CONFLICT (id)
       DO UPDATE SET
         site_name = EXCLUDED.site_name,
         seo_description = EXCLUDED.seo_description,
-        whatsapp_number = EXCLUDED.whatsapp_number
-      RETURNING site_name, seo_description, whatsapp_number, portfolio_categories, product_categories, updated_at
+        whatsapp_number = EXCLUDED.whatsapp_number,
+        contact_email = EXCLUDED.contact_email,
+        contact_phone = EXCLUDED.contact_phone,
+        contact_location = EXCLUDED.contact_location,
+        contact_hours = EXCLUDED.contact_hours,
+        smtp_enabled = EXCLUDED.smtp_enabled,
+        smtp_host = EXCLUDED.smtp_host,
+        smtp_port = EXCLUDED.smtp_port,
+        smtp_secure = EXCLUDED.smtp_secure,
+        smtp_user = EXCLUDED.smtp_user,
+        smtp_pass = CASE WHEN $16 THEN site_settings.smtp_pass ELSE EXCLUDED.smtp_pass END,
+        smtp_from = EXCLUDED.smtp_from,
+        smtp_to = EXCLUDED.smtp_to
+      RETURNING ${SITE_SETTINGS_ADMIN_COLS}
       `,
-      [site_name, seo_description, whatsapp_number]
+      [
+        site_name,
+        seo_description,
+        whatsapp_number,
+        String(contact_email ?? ""),
+        String(contact_phone ?? ""),
+        String(contact_location ?? ""),
+        String(contact_hours ?? ""),
+        Boolean(smtp_enabled),
+        String(smtp_host ?? ""),
+        resolvedPort,
+        Boolean(smtp_secure),
+        String(smtp_user ?? ""),
+        keepPass ? null : String(smtp_pass),
+        String(smtp_from ?? ""),
+        String(smtp_to ?? ""),
+        keepPass,
+      ]
     );
-    return res.json(mapSiteSettingsRow(result.rows[0]));
+    return res.json(mapSiteSettingsRow(result.rows[0], { includeSmtp: true }));
   } catch (error) {
     return res.status(500).json({ error: "update_settings_failed", detail: error.message });
   }

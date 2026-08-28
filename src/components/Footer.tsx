@@ -5,9 +5,14 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export const Footer = () => {
   const { settings } = useSiteSettings();
-  const formattedPhone = settings.whatsapp_number
-    ? settings.whatsapp_number.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3")
-    : "(11) 99999-9999";
+  const email = settings.contact_email?.trim() || "contato@agenciadev.com.br";
+  const phoneDisplay =
+    settings.contact_phone?.trim() ||
+    (settings.whatsapp_number
+      ? settings.whatsapp_number.replace(/^55(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3")
+      : "(11) 99999-9999");
+  const location = settings.contact_location?.trim() || "São Paulo, SP - Brasil";
+  const phoneDigits = phoneDisplay.replace(/\D/g, "");
 
   return (
     <footer className="bg-card border-t border-border">
@@ -91,15 +96,23 @@ export const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-3 text-muted-foreground text-sm">
                 <Mail size={16} className="text-primary" />
-                contato@agenciadev.com.br
+                <a href={`mailto:${email}`} className="hover:text-primary transition-colors">
+                  {email}
+                </a>
               </li>
               <li className="flex items-center gap-3 text-muted-foreground text-sm">
                 <Phone size={16} className="text-primary" />
-                {formattedPhone}
+                {phoneDigits ? (
+                  <a href={`tel:+${phoneDigits}`} className="hover:text-primary transition-colors">
+                    {phoneDisplay}
+                  </a>
+                ) : (
+                  phoneDisplay
+                )}
               </li>
               <li className="flex items-start gap-3 text-muted-foreground text-sm">
                 <MapPin size={16} className="text-primary mt-1" />
-                São Paulo, SP - Brasil
+                {location}
               </li>
             </ul>
           </div>

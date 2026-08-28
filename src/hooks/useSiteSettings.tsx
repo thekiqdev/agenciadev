@@ -7,6 +7,10 @@ export interface SiteSettings {
   site_name: string;
   seo_description: string;
   whatsapp_number: string;
+  contact_email: string;
+  contact_phone: string;
+  contact_location: string;
+  contact_hours: string;
   portfolio_categories: CategoryEntry[];
   product_categories: CategoryEntry[];
 }
@@ -15,6 +19,10 @@ const DEFAULT_SETTINGS: SiteSettings = {
   site_name: "Agencia Dev",
   seo_description: "Transformando ideias em soluções digitais inovadoras.",
   whatsapp_number: "5511999999999",
+  contact_email: "",
+  contact_phone: "",
+  contact_location: "",
+  contact_hours: "",
   portfolio_categories: DEFAULT_PORTFOLIO_CATEGORIES,
   product_categories: DEFAULT_PRODUCT_CATEGORIES,
 };
