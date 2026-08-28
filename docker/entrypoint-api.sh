@@ -4,7 +4,7 @@ ROOT=/srv/agenciadev-api
 IMAGE_MODULES=/opt/agenciadev-api-image/node_modules
 cd "$ROOT"
 
-if [ ! -f "$IMAGE_MODULES/express/package.json" ] || [ ! -f "$IMAGE_MODULES/pg/package.json" ]; then
+if [ ! -f "$IMAGE_MODULES/express/package.json" ] || [ ! -f "$IMAGE_MODULES/pg/package.json" ] || [ ! -f "$IMAGE_MODULES/nodemailer/package.json" ]; then
   echo "agenciadev-api: imagem sem node_modules completo em $IMAGE_MODULES — refaça o build da imagem."
   exit 1
 fi
