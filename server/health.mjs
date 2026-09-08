@@ -372,10 +372,20 @@ app.post("/api/auth/logout", (_req, res) => {
 
 // Public routes
 app.post("/api/contact-submissions", async (req, res) => {
-  const missing = requireFields(req.body, ["name", "email", "message"]);
+  const missing = requireFields(req.body, ["name", "message", "phone"]);
   if (missing.length) return res.status(400).json({ error: "missing_fields", fields: missing });
 
-  const { name, email, phone = null, message } = req.body;
+  const { name, message, phone } = req.body;
+  const emailRaw = req.body?.email;
+  const email =
+    emailRaw !== undefined && emailRaw !== null && String(emailRaw).trim()
+      ? String(emailRaw).trim()
+      : "";
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: "invalid_email" });
+  }
+
   try {
     await pool.query(
       `
@@ -389,8 +399,8 @@ app.post("/api/contact-submissions", async (req, res) => {
       "Novo contato pelo site",
       "",
       `Nome: ${name}`,
-      `E-mail: ${email}`,
-      `Telefone: ${phone || "—"}`,
+      `WhatsApp: ${phone}`,
+      `E-mail: ${email || "—"}`,
       "",
       "Mensagem:",
       message,
@@ -398,12 +408,12 @@ app.post("/api/contact-submissions", async (req, res) => {
     const html = `
       <h2>Novo contato pelo site</h2>
       <p><strong>Nome:</strong> ${escapeHtml(name)}</p>
-      <p><strong>E-mail:</strong> ${escapeHtml(email)}</p>
-      <p><strong>Telefone:</strong> ${escapeHtml(phone || "—")}</p>
+      <p><strong>WhatsApp:</strong> ${escapeHtml(phone)}</p>
+      <p><strong>E-mail:</strong> ${escapeHtml(email || "—")}</p>
       <p><strong>Mensagem:</strong></p>
       <p>${escapeHtml(message).replace(/\n/g, "<br/>")}</p>
     `;
-    await notifyByEmail(`Contato: ${name}`, text, html, email);
+    await notifyByEmail(`Contato: ${name}`, text, html, email || undefined);
 
     return res.status(201).json({ ok: true });
   } catch (error) {

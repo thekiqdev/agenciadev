@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Mail, Phone, MapPin, Clock, Send, Calendar, MessageCircle } from "lucide-react";
+import { Mail, MapPin, Clock, Send, Calendar, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -13,16 +13,25 @@ import { AnimatedCard } from "@/components/AnimatedCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import { apiFetch } from "@/integrations/api/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { openWhatsApp } from "@/lib/whatsapp";
 const contactSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
-  email: z.string().email("Email inválido").max(255, "Email muito longo"),
-  phone: z.string().optional(),
-  message: z.string().min(10, "Mensagem deve ter pelo menos 10 caracteres").max(2000, "Mensagem muito longa")
+  email: z
+    .string()
+    .max(255, "Email muito longo")
+    .refine(
+      (val) => !val.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()),
+      "Email inválido"
+    ),
+  whatsapp: z
+    .string()
+    .min(8, "Informe seu WhatsApp")
+    .refine((val) => val.replace(/\D/g, "").length >= 10, "Informe WhatsApp com DDD"),
+  message: z.string().min(10, "Mensagem deve ter pelo menos 10 caracteres").max(2000, "Mensagem muito longa"),
 });
 const budgetSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
   email: z.string().email("Email inválido").max(255, "Email muito longo"),
-  phone: z.string().optional(),
   company: z.string().optional(),
   projectType: z.string().min(1, "Selecione o tipo de projeto"),
   budget: z.string().min(1, "Selecione o range de investimento"),
@@ -46,8 +55,6 @@ const Contato = () => {
 
   const contactInfo = useMemo(() => {
     const email = settings.contact_email?.trim() || "contato@agenciadev.com.br";
-    const phone = settings.contact_phone?.trim() || "(11) 99999-9999";
-    const phoneDigits = phone.replace(/\D/g, "");
     const location = settings.contact_location?.trim() || "São Paulo, SP - Brasil";
     const hours = settings.contact_hours?.trim() || "Seg - Sex: 9h às 18h";
     return [
@@ -56,12 +63,6 @@ const Contato = () => {
         title: "E-mail",
         value: email,
         link: `mailto:${email}`,
-      },
-      {
-        icon: Phone,
-        title: "Telefone",
-        value: phone,
-        link: phoneDigits ? `tel:+${phoneDigits}` : undefined,
       },
       {
         icon: MapPin,
@@ -75,20 +76,39 @@ const Contato = () => {
       },
     ];
   }, [settings]);
+
+  const siteName = settings.site_name?.trim() || "Agencia Dev";
+  const whatsappPhone = settings.whatsapp_number ?? "5511999999999";
+
   const onContactSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
       await apiFetch("/api/contact-submissions", {
         method: "POST",
         body: JSON.stringify({
-        name: data.name,
-        email: data.email,
-        phone: data.phone || null,
-        message: data.message
+          name: data.name,
+          email: data.email?.trim() || "",
+          phone: data.whatsapp.trim(),
+          message: data.message,
         }),
       });
-      toast.success("Mensagem enviada com sucesso! Entraremos em contato em breve.");
+      toast.success("Mensagem enviada! Abrindo WhatsApp para continuar o contato.");
       contactForm.reset();
+      openWhatsApp(
+        whatsappPhone,
+        [
+          `Olá, ${siteName}!`,
+          "",
+          `Meu nome é ${data.name}.`,
+          `WhatsApp: ${data.whatsapp}`,
+          data.email?.trim() ? `E-mail: ${data.email.trim()}` : null,
+          "",
+          "Mensagem:",
+          data.message,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      );
     } catch (error) {
       console.error("Error submitting contact form:", error);
       toast.error("Erro ao enviar mensagem. Tente novamente.");
@@ -102,18 +122,36 @@ const Contato = () => {
       await apiFetch("/api/budget-submissions", {
         method: "POST",
         body: JSON.stringify({
-        name: data.name,
-        email: data.email,
-        phone: data.phone || null,
-        company: data.company || null,
-        project_type: data.projectType,
-        budget_range: data.budget,
-        deadline: data.deadline || null,
-        description: data.description
+          name: data.name,
+          email: data.email,
+          phone: null,
+          company: data.company || null,
+          project_type: data.projectType,
+          budget_range: data.budget,
+          deadline: data.deadline || null,
+          description: data.description,
         }),
       });
-      toast.success("Solicitação de orçamento enviada! Nossa equipe analisará seu projeto.");
+      toast.success("Solicitação enviada! Abrindo WhatsApp para continuar.");
       budgetForm.reset();
+      openWhatsApp(
+        whatsappPhone,
+        [
+          `Olá, ${siteName}! Gostaria de solicitar um orçamento.`,
+          "",
+          `Nome: ${data.name}`,
+          `E-mail: ${data.email}`,
+          data.company ? `Empresa: ${data.company}` : null,
+          `Tipo de projeto: ${data.projectType}`,
+          `Investimento: ${data.budget}`,
+          data.deadline ? `Prazo: ${data.deadline}` : null,
+          "",
+          "Descrição:",
+          data.description,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      );
     } catch (error) {
       console.error("Error submitting budget form:", error);
       toast.error("Erro ao enviar solicitação. Tente novamente.");
@@ -149,7 +187,7 @@ const Contato = () => {
       {/* Contact Info Cards */}
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {contactInfo.map((info, index) => <motion.div key={info.title} initial={{
             opacity: 0,
             y: 20
@@ -208,15 +246,24 @@ const Contato = () => {
                         {contactForm.formState.errors.name && <p className="text-sm text-destructive">{contactForm.formState.errors.name.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="contact-email">E-mail *</Label>
-                        <Input id="contact-email" type="email" placeholder="seu@email.com" {...contactForm.register("email")} className="bg-muted border-border" />
-                        {contactForm.formState.errors.email && <p className="text-sm text-destructive">{contactForm.formState.errors.email.message}</p>}
+                        <Label htmlFor="contact-whatsapp">WhatsApp *</Label>
+                        <Input
+                          id="contact-whatsapp"
+                          type="tel"
+                          placeholder="(11) 99999-9999"
+                          {...contactForm.register("whatsapp")}
+                          className="bg-muted border-border"
+                        />
+                        {contactForm.formState.errors.whatsapp && (
+                          <p className="text-sm text-destructive">{contactForm.formState.errors.whatsapp.message}</p>
+                        )}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="contact-phone">Telefone (opcional)</Label>
-                      <Input id="contact-phone" placeholder="(11) 99999-9999" {...contactForm.register("phone")} className="bg-muted border-border" />
+                      <Label htmlFor="contact-email">E-mail</Label>
+                      <Input id="contact-email" type="email" placeholder="seu@email.com (opcional)" {...contactForm.register("email")} className="bg-muted border-border" />
+                      {contactForm.formState.errors.email && <p className="text-sm text-destructive">{contactForm.formState.errors.email.message}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -258,11 +305,7 @@ const Contato = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="budget-phone">Telefone</Label>
-                        <Input id="budget-phone" placeholder="(11) 99999-9999" {...budgetForm.register("phone")} className="bg-muted border-border" />
-                      </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="budget-company">Empresa</Label>
                         <Input id="budget-company" placeholder="Nome da empresa" {...budgetForm.register("company")} className="bg-muted border-border" />
                       </div>

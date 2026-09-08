@@ -45,10 +45,9 @@ const services = [
 ];
 
 const stats = [
-  { value: "50+", label: "Projetos Entregues" },
-  { value: "30+", label: "Clientes Satisfeitos" },
-  { value: "5+", label: "Anos de Experiência" },
-  { value: "99%", label: "Taxa de Satisfação" },
+  { value: "500+", label: "Projetos Entregues" },
+  { value: "12 anos", label: "Anos de Experiência" },
+  { value: "100+", label: "Clientes Ativos" },
 ];
 
 const Index = () => {
@@ -157,7 +156,7 @@ const Index = () => {
       {/* Stats Section */}
       <section className="py-20 relative">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}

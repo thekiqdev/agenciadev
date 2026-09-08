@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Eye, Trash2, Mail, Phone } from "lucide-react";
+import { Eye, Trash2, Mail, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { whatsAppChatUrl } from "@/lib/whatsapp";
 
 interface ContactSubmission {
   id: string;
@@ -50,7 +51,7 @@ export function ContactsSection({ contacts, onView, onDelete, formatDate }: Cont
               <TableRow className="hover:bg-transparent">
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
+                <TableHead>WhatsApp</TableHead>
                 <TableHead>Mensagem</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -61,14 +62,23 @@ export function ContactsSection({ contacts, onView, onDelete, formatDate }: Cont
                 <TableRow key={contact.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">{contact.name}</TableCell>
                   <TableCell>
-                    <a href={`mailto:${contact.email}`} className="text-primary hover:underline">
-                      {contact.email}
-                    </a>
+                    {contact.email ? (
+                      <a href={`mailto:${contact.email}`} className="text-primary hover:underline">
+                        {contact.email}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {contact.phone ? (
-                      <a href={`tel:${contact.phone}`} className="text-primary hover:underline flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
+                      <a
+                        href={whatsAppChatUrl(contact.phone)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
+                        <MessageCircle className="w-3 h-3" />
                         {contact.phone}
                       </a>
                     ) : (

@@ -584,11 +584,11 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Email</Label>
-                  <p className="text-foreground">{selectedItem.email}</p>
+                  <p className="text-foreground">{selectedItem.email || "—"}</p>
                 </div>
                 {selectedItem.phone && (
                   <div>
-                    <Label className="text-muted-foreground">Telefone</Label>
+                    <Label className="text-muted-foreground">WhatsApp</Label>
                     <p className="text-foreground">{selectedItem.phone}</p>
                   </div>
                 )}

@@ -157,7 +157,7 @@ export function SettingsSection({ settings, loading, onSave, onSaveCategories }:
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contact_phone">Telefone</Label>
+                <Label htmlFor="contact_phone">WhatsApp</Label>
                 <Input
                   id="contact_phone"
                   value={form.contact_phone}
