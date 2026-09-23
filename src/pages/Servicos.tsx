@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { 
-  Code2, Layers, Cloud, Globe, Wrench, 
+  Code2, Layers, Cloud, Globe, Wrench, Server,
   CheckCircle, ArrowRight, Zap, Shield, Users, Rocket 
 } from "lucide-react";
 import { SectionTitle } from "@/components/SectionTitle";
@@ -72,6 +72,19 @@ const services = [
       "Suporte técnico dedicado",
     ],
     color: "purple" as const,
+  },
+  {
+    icon: Server,
+    title: "Servidores",
+    description: "Infraestrutura gerenciada para hospedar sistemas, sites e e-mails com estabilidade, segurança e suporte dedicado.",
+    features: [
+      "VPS e servidores dedicados",
+      "E-mail corporativo",
+      "Hospedagem de sites e aplicações",
+      "Backup e monitoramento",
+      "Configuração de DNS, SSL e painéis",
+    ],
+    color: "green" as const,
   },
 ];
 

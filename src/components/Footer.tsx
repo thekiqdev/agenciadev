@@ -82,6 +82,7 @@ export const Footer = () => {
                 "Soluções SaaS",
                 "Criação de Sites",
                 "Manutenção e Suporte",
+                "Servidores (VPS, e-mail)",
               ].map((service) => (
                 <li key={service}>
                   <span className="text-muted-foreground text-sm">{service}</span>

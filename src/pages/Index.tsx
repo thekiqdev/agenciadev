@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Code2, Layers, Cloud, Globe, Wrench, ChevronRight } from "lucide-react";
+import { ArrowRight, Code2, Layers, Cloud, Globe, Wrench, Server, ChevronRight } from "lucide-react";
 import { GlitchText } from "@/components/GlitchText";
 import { AnimatedCard } from "@/components/AnimatedCard";
 import { SectionTitle } from "@/components/SectionTitle";
@@ -42,12 +42,17 @@ const services = [
     description: "Suporte contínuo, atualizações e melhorias para manter seus sistemas sempre funcionando.",
     color: "purple" as const,
   },
+  {
+    icon: Server,
+    title: "Servidores",
+    description: "Infraestrutura com VPS, e-mail corporativo, hospedagem e ambientes gerenciados para o seu negócio.",
+    color: "green" as const,
+  },
 ];
 
 const stats = [
-  { value: "500+", label: "Projetos Entregues" },
+  { value: "1000+", label: "Projetos Entregues" },
   { value: "12 anos", label: "Anos de Experiência" },
-  { value: "100+", label: "Clientes Ativos" },
 ];
 
 const Index = () => {
@@ -156,7 +161,7 @@ const Index = () => {
       {/* Stats Section */}
       <section className="py-20 relative">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}

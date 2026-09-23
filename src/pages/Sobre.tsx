@@ -4,29 +4,29 @@ import { Target, Eye, Heart, Users, Award, Clock, Rocket, Shield } from "lucide-
 import { SectionTitle } from "@/components/SectionTitle";
 import { AnimatedCard } from "@/components/AnimatedCard";
 const timeline = [{
-  year: "2019",
+  year: "2013",
   title: "Início da Jornada",
-  description: "Fundação da NexusDev com foco em desenvolvimento de sistemas personalizados."
+  description: "Nascemos como empresa de servidores e hospedagem, cuidando da infraestrutura que sustenta negócios online."
+}, {
+  year: "2015",
+  title: "Sites Corporativos",
+  description: "Entramos no desenvolvimento web e passamos a criar sites institucionais para empresas que precisavam de presença digital profissional."
+}, {
+  year: "2016",
+  title: "Agência de E-commerce",
+  description: "Focamos em lojas virtuais e aceleramos a operação: mais de 50 e-commerces lançados por mês."
 }, {
   year: "2020",
-  title: "Expansão de Serviços",
-  description: "Ampliamos nosso portfólio para incluir plataformas digitais e soluções SaaS."
-}, {
-  year: "2021",
-  title: "Crescimento da Equipe",
-  description: "Dobramos a equipe e consolidamos parcerias estratégicas."
-}, {
-  year: "2022",
-  title: "Reconhecimento",
-  description: "Premiados como uma das melhores agências de desenvolvimento da região."
-}, {
-  year: "2023",
-  title: "Inovação Contínua",
-  description: "Investimento em IA e automação para entregar soluções mais inteligentes."
+  title: "Sistemas e SaaS",
+  description: "Ampliamos a atuação para desenvolvimento de sistemas sob medida e plataformas SaaS."
 }, {
   year: "2024",
-  title: "Nova Era",
-  description: "Expansão nacional e lançamento de produtos próprios."
+  title: "SaaS Próprio",
+  description: "Lançamos nosso próprio produto SaaS, com uma base de mais de 5 mil clientes."
+}, {
+  year: "2025",
+  title: "Parceria em Corridas",
+  description: "Firmamos parceria com uma grande marca de plataforma de corrida de rua e cronometragem."
 }];
 const values = [{
   icon: Rocket,
@@ -45,39 +45,14 @@ const values = [{
   title: "Paixão",
   description: "Amamos o que fazemos e isso se reflete em cada projeto que entregamos."
 }];
-const team = [{
-  name: "Carlos Silva",
-  role: "CEO & Fundador",
-  image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"
-}, {
-  name: "Ana Santos",
-  role: "CTO",
-  image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=face"
-}, {
-  name: "Pedro Costa",
-  role: "Lead Developer",
-  image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face"
-}, {
-  name: "Maria Oliveira",
-  role: "UX Designer",
-  image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face"
-}];
 const stats = [{
   icon: Award,
-  value: "50+",
+  value: "1000+",
   label: "Projetos Entregues"
 }, {
-  icon: Users,
-  value: "30+",
-  label: "Clientes Ativos"
-}, {
   icon: Clock,
-  value: "5+",
+  value: "12+",
   label: "Anos de Mercado"
-}, {
-  icon: Rocket,
-  value: "99%",
-  label: "Satisfação"
 }];
 const Sobre = () => {
   return <div className="min-h-screen bg-background pt-24">
@@ -154,7 +129,7 @@ const Sobre = () => {
       {/* Stats */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {stats.map((stat, index) => <motion.div key={stat.label} initial={{
             opacity: 0,
             y: 30
@@ -234,34 +209,6 @@ const Sobre = () => {
                 </div>
                 <h3 className="text-lg font-bold mb-2 text-foreground">{value.title}</h3>
                 <p className="text-muted-foreground text-sm">{value.description}</p>
-              </motion.div>)}
-          </div>
-        </div>
-      </section>
-
-      {/* Team */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <SectionTitle title="Nossa Equipe" subtitle="Profissionais apaixonados por tecnologia" />
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-            {team.map((member, index) => <motion.div key={member.name} initial={{
-            opacity: 0,
-            scale: 0.9
-          }} whileInView={{
-            opacity: 1,
-            scale: 1
-          }} viewport={{
-            once: true
-          }} transition={{
-            delay: index * 0.1
-          }} className="group text-center">
-                <div className="relative mb-4 overflow-hidden rounded-xl">
-                  <img src={member.image} alt={member.name} className="w-full aspect-square object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <h3 className="font-bold text-foreground">{member.name}</h3>
-                <p className="text-sm text-muted-foreground">{member.role}</p>
               </motion.div>)}
           </div>
         </div>
