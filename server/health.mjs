@@ -210,6 +210,7 @@ function mapCategoryJsonb(value) {
 const SITE_SETTINGS_PUBLIC_COLS = `
   site_name, seo_description, whatsapp_number,
   contact_email, contact_phone, contact_location, contact_hours,
+  gtm_id,
   portfolio_categories, product_categories, updated_at
 `;
 
@@ -228,6 +229,7 @@ function mapSiteSettingsRow(row, { includeSmtp = false } = {}) {
       contact_phone: "",
       contact_location: "",
       contact_hours: "",
+      gtm_id: "",
       portfolio_categories: DEFAULT_PORTFOLIO_CATEGORIES,
       product_categories: DEFAULT_PRODUCT_CATEGORIES,
       updated_at: null,
@@ -266,6 +268,7 @@ function mapSiteSettingsRow(row, { includeSmtp = false } = {}) {
     contact_phone: row.contact_phone ?? "",
     contact_location: row.contact_location ?? "",
     contact_hours: row.contact_hours ?? "",
+    gtm_id: row.gtm_id ?? "",
     portfolio_categories: pc,
     product_categories: pr,
     updated_at: row.updated_at ?? null,
@@ -745,6 +748,7 @@ app.put("/api/admin/settings", authRequired, adminRequired, async (req, res) => 
     contact_phone = "",
     contact_location = "",
     contact_hours = "",
+    gtm_id = "",
     smtp_enabled = false,
     smtp_host = "",
     smtp_port = 587,
@@ -765,6 +769,13 @@ app.put("/api/admin/settings", authRequired, adminRequired, async (req, res) => 
   const portNum = Number(smtp_port);
   const resolvedPort = Number.isFinite(portNum) && portNum > 0 ? portNum : 587;
   const keepPass = smtp_pass === undefined || smtp_pass === null || String(smtp_pass).length === 0;
+  const gtmNormalized = String(gtm_id ?? "").trim().toUpperCase();
+  if (gtmNormalized && !/^GTM-[A-Z0-9]+$/.test(gtmNormalized)) {
+    return res.status(400).json({
+      error: "invalid_gtm_id",
+      detail: "Informe um ID no formato GTM-XXXXXXX ou deixe em branco.",
+    });
+  }
 
   try {
     const result = await pool.query(
@@ -772,10 +783,12 @@ app.put("/api/admin/settings", authRequired, adminRequired, async (req, res) => 
       INSERT INTO site_settings (
         id, site_name, seo_description, whatsapp_number,
         contact_email, contact_phone, contact_location, contact_hours,
+        gtm_id,
         smtp_enabled, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, smtp_from, smtp_to
       )
       VALUES (
         1, $1, $2, $3, $4, $5, $6, $7,
+        $17,
         $8, $9, $10, $11, $12, COALESCE($13, ''), $14, $15
       )
       ON CONFLICT (id)
@@ -787,6 +800,7 @@ app.put("/api/admin/settings", authRequired, adminRequired, async (req, res) => 
         contact_phone = EXCLUDED.contact_phone,
         contact_location = EXCLUDED.contact_location,
         contact_hours = EXCLUDED.contact_hours,
+        gtm_id = EXCLUDED.gtm_id,
         smtp_enabled = EXCLUDED.smtp_enabled,
         smtp_host = EXCLUDED.smtp_host,
         smtp_port = EXCLUDED.smtp_port,
@@ -814,6 +828,7 @@ app.put("/api/admin/settings", authRequired, adminRequired, async (req, res) => 
         String(smtp_from ?? ""),
         String(smtp_to ?? ""),
         keepPass,
+        gtmNormalized,
       ]
     );
     return res.json(mapSiteSettingsRow(result.rows[0], { includeSmtp: true }));

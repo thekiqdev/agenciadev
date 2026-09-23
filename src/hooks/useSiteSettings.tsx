@@ -11,6 +11,7 @@ export interface SiteSettings {
   contact_phone: string;
   contact_location: string;
   contact_hours: string;
+  gtm_id: string;
   portfolio_categories: CategoryEntry[];
   product_categories: CategoryEntry[];
 }
@@ -23,6 +24,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   contact_phone: "",
   contact_location: "",
   contact_hours: "",
+  gtm_id: "",
   portfolio_categories: DEFAULT_PORTFOLIO_CATEGORIES,
   product_categories: DEFAULT_PRODUCT_CATEGORIES,
 };

@@ -18,6 +18,7 @@ export interface AdminSiteSettings {
   contact_phone: string;
   contact_location: string;
   contact_hours: string;
+  gtm_id: string;
   portfolio_categories: CategoryEntry[];
   product_categories: CategoryEntry[];
   smtp_enabled: boolean;
@@ -132,6 +133,21 @@ export function SettingsSection({ settings, loading, onSave, onSaveCategories }:
                 />
                 <p className="text-xs text-muted-foreground">
                   Número com DDI (ex.: 5511999999999), usado no botão flutuante.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gtm_id">Google Tag Manager</Label>
+                <Input
+                  id="gtm_id"
+                  value={form.gtm_id}
+                  onChange={(e) => setField("gtm_id", e.target.value)}
+                  placeholder="GTM-XXXXXXX"
+                  className="bg-muted border-border"
+                  autoComplete="off"
+                />
+                <p className="text-xs text-muted-foreground">
+                  ID do container (ex.: GTM-XXXXXXX). Deixe em branco para desativar. O script é carregado nas páginas públicas.
                 </p>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Navigation } from "./Navigation";
 import { Footer } from "./Footer";
 import { WhatsAppButton } from "./WhatsAppButton";
+import { GoogleTagManager } from "./GoogleTagManager";
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ export const Layout = ({ children }: LayoutProps) => {
       <main className="flex-1">{children}</main>
       <Footer />
       <WhatsAppButton />
+      <GoogleTagManager />
     </div>
   );
 };
