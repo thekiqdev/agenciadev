@@ -14,6 +14,7 @@ import { SectionTitle } from "@/components/SectionTitle";
 import { apiFetch } from "@/integrations/api/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { pushConversion } from "@/lib/gtm";
 const contactSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome muito longo"),
   email: z
@@ -92,6 +93,7 @@ const Contato = () => {
           message: data.message,
         }),
       });
+      pushConversion("form_submit", { form_name: "contato" });
       toast.success("Mensagem enviada! Abrindo WhatsApp para continuar o contato.");
       contactForm.reset();
       openWhatsApp(
@@ -132,6 +134,7 @@ const Contato = () => {
           description: data.description,
         }),
       });
+      pushConversion("form_submit", { form_name: "orcamento" });
       toast.success("Solicitação enviada! Abrindo WhatsApp para continuar.");
       budgetForm.reset();
       openWhatsApp(
